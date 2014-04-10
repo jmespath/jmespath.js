@@ -1,0 +1,41 @@
+{
+    "name": "jmespath",
+    "description": "AWS SDK for JavaScript",
+    "version": "0.0.1",
+    "author": {
+        "name":"James Saryerwinnie",
+        "email":"js@jamesls.com",
+        "url":"http://jamesls.com/"
+    },
+    "homepage": "https://github.com/jmespath/jmespath.js",
+    "contributors": [],
+    "devDependencies": {
+    },
+    "dependencies": {
+    },
+    "main": "jmespath.js",
+    "directories":  {
+        "test": "test"
+    },
+    "engines": {
+        "node": ">= 0.6.0"
+    },
+    "repository": {
+        "type" : "git",
+        "url": "git://github.com/jmespath/jmespath.js"
+    },
+   "bugs" : {
+        "url" : "http://github.com/jmespath/jmespath.js/issues",
+        "mail" : ""
+    },
+    "licenses": [{
+        "type": "Apache 2.0",
+        "url": "http://github.com/jmespath/jmespath.js/raw/master/LICENSE"
+    }],
+    "keywords": [
+        "jmespath", "jsonpath"
+    ],
+    "scripts" : {
+    }
+}
+
