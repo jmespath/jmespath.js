@@ -72,10 +72,6 @@
       "result": {"baz": "two"}
     },
     {
-      "expression": "{\"a\": foo.bar, \"b\": foo.other} | sort(*.baz)",
-      "result": ["one", "two"]
-    },
-    {
       "expression": "foo.bam || foo.bar | baz",
       "result": "one"
     },

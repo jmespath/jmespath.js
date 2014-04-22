@@ -1,7 +1,8 @@
-var assert = require('assert')
-var jmespath = require('../jmespath')
-var tokenize = jmespath.tokenize
-var compile = jmespath.compile
+var assert = require('assert');
+var jmespath = require('../jmespath');
+var tokenize = jmespath.tokenize;
+var compile = jmespath.compile;
+var strictDeepEqual = jmespath.strictDeepEqual;
 
 
 describe('tokenize', function() {
@@ -154,6 +155,52 @@ describe('tokenize', function() {
 describe('parsing', function() {
     it('should parse field node', function() {
         assert.deepEqual(compile('foo'),
-                          {type: 'Field', name: 'foo'})
+                          {type: 'Field', name: 'foo'});
+    });
+});
+
+describe('strictDeepEqual', function() {
+    it('should compare scalars', function() {
+        assert.strictEqual(strictDeepEqual('a', 'a'), true);
+    });
+    it('should be false for different types', function() {
+        assert.strictEqual(strictDeepEqual('a', 2), false);
+    });
+    it('should be false for arrays of different lengths', function() {
+        assert.strictEqual(strictDeepEqual([0, 1], [1, 2, 3]), false);
+    });
+    it('should be true for identical arrays', function() {
+        assert.strictEqual(strictDeepEqual([0, 1], [0, 1]), true);
+    });
+    it('should be true for nested arrays', function() {
+        assert.strictEqual(
+            strictDeepEqual([[0, 1], [2, 3]], [[0, 1], [2, 3]]), true);
+    });
+    it('should be true for nested arrays of strings', function() {
+        assert.strictEqual(
+            strictDeepEqual([["a", "b"], ["c", "d"]],
+                            [["a", "b"], ["c", "d"]]), true);
+    });
+    it('should be false for different arrays of the same length', function() {
+        assert.strictEqual(strictDeepEqual([0, 1], [1, 2]), false);
+    });
+    it('should handle object literals', function() {
+        assert.strictEqual(strictDeepEqual({a: 1, b: 2}, {a: 1, b: 2}), true);
+    });
+    it('should handle keys in first not in second', function() {
+        assert.strictEqual(strictDeepEqual({a: 1, b: 2}, {a: 1}), false);
+    });
+    it('should handle keys in second not in first', function() {
+        assert.strictEqual(strictDeepEqual({a: 1}, {a: 1, b: 2}), false);
+    });
+    it('should handle nested objects', function() {
+        assert.strictEqual(
+            strictDeepEqual({a: {b: [1, 2]}},
+                            {a: {b: [1, 2]}}), true);
+    });
+    it('should handle nested objects that are not equal', function() {
+        assert.strictEqual(
+            strictDeepEqual({a: {b: [1, 2]}},
+                            {a: {b: [1, 4]}}), false);
     });
 });

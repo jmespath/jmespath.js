@@ -4,15 +4,13 @@ var assert = require('assert');
 var jmespath = require('../jmespath');
 var search = jmespath.search;
 
-// pipe.json is actually implemented, but the compliance test requires
-// function support so the tests aren't run for now.
-var notImplementedYet = ['filters.json', 'functions.json', 'pipe.json', 'syntax.json'];
+// Compliance tests that aren't supported yet.
+var notImplementedYet = ['functions.json'];
 
 function endsWith(str, suffix) {
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
 }
 
-// TODO: will need to figure out how to make this not dependent on cwd.
 var listing = fs.readdirSync('test/compliance');
 for (var i = 0; i < listing.length; i++) {
     var filename = 'test/compliance/' + listing[i];
@@ -32,11 +30,19 @@ function addTestSuitesFromFile(filename) {
                 for (var j = 0; j < cases.length; j++) {
                     var testcase = cases[j];
                     if (testcase.error !== undefined) {
-                        // TODO: implement error tests.
+                        // For now just verify that an error is thrown
+                        // for error tests.
+                        (function(testcase, given) {
+                          it('should throw error for test ' + j, function() {
+                              assert.throws(
+                                  function() {
+                                    search(given, testcase.expression);
+                                  }, Error);
+                          });
+                        })(testcase, given);
                     } else {
                         (function(testcase, given) {
                           it('should pass test ' + j, function() {
-                              console.log(testcase);
                               assert.deepEqual(search(given, testcase.expression),
                                                testcase.result);
                           });

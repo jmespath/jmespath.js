@@ -1,41 +1,48 @@
 {
-    "name": "jmespath",
-    "description": "AWS SDK for JavaScript",
-    "version": "0.0.1",
-    "author": {
-        "name":"James Saryerwinnie",
-        "email":"js@jamesls.com",
-        "url":"http://jamesls.com/"
-    },
-    "homepage": "https://github.com/jmespath/jmespath.js",
-    "contributors": [],
-    "devDependencies": {
-    },
-    "dependencies": {
-    },
-    "main": "jmespath.js",
-    "directories":  {
-        "test": "test"
-    },
-    "engines": {
-        "node": ">= 0.6.0"
-    },
-    "repository": {
-        "type" : "git",
-        "url": "git://github.com/jmespath/jmespath.js"
-    },
-   "bugs" : {
-        "url" : "http://github.com/jmespath/jmespath.js/issues",
-        "mail" : ""
-    },
-    "licenses": [{
-        "type": "Apache 2.0",
-        "url": "http://github.com/jmespath/jmespath.js/raw/master/LICENSE"
-    }],
-    "keywords": [
-        "jmespath", "jsonpath"
-    ],
-    "scripts" : {
+  "name": "jmespath",
+  "description": "JMESPath implementation in javascript",
+  "version": "0.0.1",
+  "author": {
+    "name": "James Saryerwinnie",
+    "email": "js@jamesls.com",
+    "url": "http://jamesls.com/"
+  },
+  "homepage": "https://github.com/jmespath/jmespath.js",
+  "contributors": [],
+  "devDependencies": {
+    "grunt": "^0.4.4",
+    "grunt-contrib-jshint": "^0.10.0",
+    "mocha": "^1.18.2",
+    "grunt-contrib-uglify": "^0.4.0",
+    "grunt-eslint": "^0.4.0"
+  },
+  "dependencies": {},
+  "main": "jmespath.js",
+  "directories": {
+    "test": "test"
+  },
+  "engines": {
+    "node": ">= 0.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jmespath/jmespath.js"
+  },
+  "bugs": {
+    "url": "http://github.com/jmespath/jmespath.js/issues",
+    "mail": ""
+  },
+  "licenses": [
+    {
+      "type": "Apache 2.0",
+      "url": "http://github.com/jmespath/jmespath.js/raw/master/LICENSE"
     }
+  ],
+  "keywords": [
+    "jmespath",
+    "jsonpath",
+    "json",
+    "xpath"
+  ],
+  "scripts": {}
 }
-
