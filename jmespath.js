@@ -405,7 +405,7 @@
           "Dot": 40,
           "Lbrace": 50,
           "Filter": 50,
-          "Lbracket": 50,
+          "Lbracket": 55,
           "Lparen": 60
       };
   }
