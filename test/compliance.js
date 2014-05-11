@@ -5,7 +5,7 @@ var jmespath = require('../jmespath');
 var search = jmespath.search;
 
 // Compliance tests that aren't supported yet.
-var notImplementedYet = ['functions.json'];
+var notImplementedYet = [];
 
 function endsWith(str, suffix) {
     return str.indexOf(suffix, str.length - suffix.length) !== -1;

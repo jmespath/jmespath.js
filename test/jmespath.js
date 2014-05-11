@@ -149,6 +149,17 @@ describe('tokenize', function() {
             ]
         );
     });
+    it('should tokenize function calls', function() {
+        assert.deepEqual(
+            tokenize("abs(@)"),
+            [
+                {type: "UnquotedIdentifier", value: "abs", start: 0},
+                {type: "Lparen", value: "(", start: 3},
+                {type: "Current", value: "@", start: 4},
+                {type: "Rparen", value: ")", start: 5}
+            ]
+        );
+    });
 });
 
 

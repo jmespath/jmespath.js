@@ -342,7 +342,7 @@
               }
               this.current = current;
           }
-          var literalString = stream.slice(start, this.current).trim();
+          var literalString = stream.slice(start, this.current).trimLeft();
           literalString = literalString.replace("\\`", "`");
           if (this.looksLikeJSON(literalString)) {
               literal = JSON.parse(literalString);
@@ -633,6 +633,27 @@
           return {type: "Projection", children: [leftNode, rightNode]};
       },
 
+      ledLparen: function(left) {
+        var name = left.name;
+        var args = [];
+        var expression, node;
+        while (this.lookahead(0) !== "Rparen") {
+          if (this.lookahead(0) === 'Current') {
+            expression = {type: "Current"};
+            this.advance();
+          } else {
+            expression = this.expression(0);
+          }
+          if (this.lookahead(0) === 'Comma') {
+            this.match('Comma');
+          }
+          args.push(expression)
+        }
+        this.match('Rparen');
+        node = {type: "Function", name: name, children: args};
+        return node;
+      },
+
       parseDotRHS: function(rbp) {
           var lookahead = this.lookahead(0);
           var exprTokens = ["UnquotedIdentifier", "QuotedIdentifier", "Star"];
@@ -712,8 +733,10 @@
   };
 
 
-  function TreeInterpreter() {
+  function TreeInterpreter(runtime) {
+    this.runtime = runtime;
   }
+
   TreeInterpreter.prototype = {
       search: function(node, value) {
           return this.visit(node, value);
@@ -919,12 +942,300 @@
       visitPipe: function(node, value) {
         var left = this.visit(node.children[0], value);
         return this.visit(node.children[1], left);
+      },
+
+      visitCurrent: function(node, value) {
+          return value;
+      },
+
+      visitFunction: function(node, value) {
+        var resolvedArgs = [];
+        for (var i = 0; i < node.children.length; i++) {
+            resolvedArgs.push(this.visit(node.children[i], value));
+        }
+        return this.runtime.callFunction(node.name, resolvedArgs);
       }
   };
 
+  function Runtime(interpreter) {
+    this.functionTable = {
+        // name: [function, <signature>]
+        // The <signature> can be:
+        //
+        // {
+        //   args: [[type1, type2], [type1, type2]],
+        //   variadic: true|false
+        // }
+        //
+        // Each arg in the arg list is a list of valid types
+        // (if the function is overloaded and supports multiple
+        // types.  If the type is "any" then no type checking
+        // occurs on the argument.  Variadic is optional
+        // and if not provided is assumed to be false.
+        abs: {func: this.functionAbs, signature: [{types: ["number"]}]},
+        avg: {func: this.functionAvg, signature: [{types: ["array-number"]}]},
+        ceil: {func: this.functionCeil, signature: [{types: ["number"]}]},
+        contains: {
+            func: this.functionContains,
+            signature: [{types: ["string", "array"]}, {types: ["any"]}]},
+        floor: {func: this.functionFloor, signature: [{types: ["number"]}]},
+        length: {
+            func: this.functionLength,
+            signature: [{types: ["string", "array", "object"]}]},
+        max: {func: this.functionMax, signature: [{types: ["array-number"]}]},
+        sum: {func: this.functionSum, signature: [{types: ["array-number"]}]},
+        min: {func: this.functionMin, signature: [{types: ["array-number"]}]},
+        type: {func: this.functionType, signature: [{types: ["any"]}]},
+        keys: {func: this.functionKeys, signature: [{types: ["object"]}]},
+        values: {func: this.functionValues, signature: [{types: ["object"]}]},
+        sort: {func: this.functionSort, signature: [{types: ["array-string", "array-number"]}]},
+        join: {
+            func: this.functionJoin,
+            signature: [
+                {types: ["string"]},
+                {types: ["array-string"]},
+            ],
+        },
+        to_string: {func: this.functionToString, signature: [{types: ["any"]}]},
+        to_number: {func: this.functionToNumber, signature: [{types: ["any"]}]},
+        not_null: {
+            func: this.functionNotNull,
+            signature: [{types: ["any"], variadic: true}]
+        }
+    };
+  }
+
+  Runtime.prototype = {
+    callFunction: function(name, resolvedArgs) {
+      console.log("Calling function: " + name + " with args: " + resolvedArgs);
+      var functionEntry = this.functionTable[name];
+      if (functionEntry === undefined) {
+          throw new Error("Unknown function: " + name + "()");
+      }
+      this.validateArgs(name, resolvedArgs, functionEntry.signature);
+      return functionEntry.func.call(this, resolvedArgs);
+    },
+
+    validateArgs: function(name, args, signature) {
+        // Validating the args requires validating
+        // the correct arity and the correct type of each arg.
+        // If the last argument is declared as variadic, then we need
+        // a minimum number of args to be required.  Otherwise it has to
+        // be an exact amount.
+        if (signature[signature.length - 1].variadic) {
+            if (args.length < signature.length) {
+                var pluralized = signature.length === 1 ? " argument": " arguments";
+                throw new Error("ArgumentError: " + name + "() " +
+                                "takes at least" + signature.length + pluralized +
+                                " but received " + args.length);
+            }
+        } else if (args.length !== signature.length) {
+            var pluralized = signature.length === 1 ? " argument": " arguments";
+            throw new Error("ArgumentError: " + name + "() " +
+                            "takes " + signature.length + pluralized +
+                            " but received " + args.length);
+        }
+        var currentSpec;
+        var actualType;
+        var typeMatched;
+        for (var i = 0; i < signature.length; i++) {
+            typeMatched = false;
+            currentSpec = signature[i].types;
+            actualType = this.getTypeName(args[i]);
+            for (var j = 0; j < currentSpec.length; j++) {
+                if (this.typeMatches(actualType, currentSpec[j], args[i])) {
+                    typeMatched = true;
+                    break;
+                }
+            }
+            if (!typeMatched) {
+                throw new Error("TypeError: " + name + "() " +
+                                "expected argument " + (i + 1) +
+                                " to be type " + currentSpec +
+                                " but received type " + actualType +
+                                " instead.");
+            }
+        }
+    },
+
+    typeMatches: function(actual, expected, argValue) {
+        if (expected === "any") {
+            return true;
+        }
+        if (expected.indexOf("array") === 0) {
+            // The expected type can either just be array,
+            // or it can require a specific subtype (array of numbers).
+            //
+            // The simplest case is if "array" with no subtype is specified.
+            if (expected === "array") {
+                return actual.indexOf("array") === 0;
+            } else if (actual.indexOf("array") === 0) {
+                // Otherwise we need to check subtypes.
+                // I think this has potential to be improved.
+                var subtype = expected.split('-')[1];
+                for (var i = 0; i < argValue.length; i++) {
+                    if (!this.typeMatches(
+                            this.getTypeName(argValue[i]), subtype,
+                                             argValue[i])) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        } else {
+            return actual === expected;
+        }
+    },
+    getTypeName: function(obj) {
+        switch (toString.call(obj)) {
+            case "[object String]":
+              return "string";
+              break;
+            case "[object Number]":
+              return "number";
+              break;
+            case "[object Array]":
+              return "array";
+              break;
+            case "[object Boolean]":
+              return "boolean";
+              break;
+            case "[object Null]":
+              return "null";
+              break;
+            case "[object Object]":
+              return "object";
+              break;
+        }
+    },
+
+    functionAbs: function(resolvedArgs) {
+      return Math.abs(resolvedArgs[0]);
+    },
+
+    functionCeil: function(resolvedArgs) {
+        return Math.ceil(resolvedArgs[0]);
+    },
+
+    functionAvg: function(resolvedArgs) {
+        var sum = 0;
+        var inputArray = resolvedArgs[0];
+        for (var i = 0; i < inputArray.length; i++) {
+            sum += inputArray[i];
+        }
+        return sum / inputArray.length;
+    },
+
+    functionContains: function(resolvedArgs) {
+        return resolvedArgs[0].indexOf(resolvedArgs[1]) >= 0;
+    },
+
+    functionFloor: function(resolvedArgs) {
+        return Math.floor(resolvedArgs[0]);
+    },
+
+    functionLength: function(resolvedArgs) {
+       if (!isObject(resolvedArgs[0])) {
+         return resolvedArgs[0].length;
+       } else {
+         // As far as I can tell, there's no way to get the length
+         // of an object without O(n) iteration through the object.
+         return Object.keys(resolvedArgs[0]).length;
+       }
+    },
+
+    functionMax: function(resolvedArgs) {
+      if (resolvedArgs[0].length > 0) {
+        return Math.max.apply(Math, resolvedArgs[0]);
+      } else {
+          return null;
+      }
+    },
+
+    functionMin: function(resolvedArgs) {
+      if (resolvedArgs[0].length > 0) {
+        return Math.min.apply(Math, resolvedArgs[0]);
+      } else {
+        return null;
+      }
+    },
+
+    functionSum: function(resolvedArgs) {
+      var sum = 0;
+      var listToSum = resolvedArgs[0];
+      for (var i = 0; i < listToSum.length; i++) {
+        sum += listToSum[i];
+      }
+      return sum;
+    },
+
+    functionType: function(resolvedArgs) {
+        return this.getTypeName(resolvedArgs[0]);
+    },
+
+    functionKeys: function(resolvedArgs) {
+        return Object.keys(resolvedArgs[0]);
+    },
+
+    functionValues: function(resolvedArgs) {
+        var obj = resolvedArgs[0];
+        var keys = Object.keys(obj);
+        var values = []
+        for (var i = 0; i < keys.length; i++) {
+            values.push(obj[keys[i]]);
+        }
+        return values;
+    },
+
+    functionJoin: function(resolvedArgs) {
+        var joinChar = resolvedArgs[0];
+        var listJoin = resolvedArgs[1];
+        return listJoin.join(joinChar);
+    },
+
+    functionToString: function(resolvedArgs) {
+        if (this.getTypeName(resolvedArgs[0]) === 'string') {
+            return resolvedArgs[0];
+        } else {
+            return JSON.stringify(resolvedArgs[0]);
+        }
+    },
+
+    functionToNumber: function(resolvedArgs) {
+        var typeName = this.getTypeName(resolvedArgs[0]);
+        var convertedValue;
+        if (typeName === "number") {
+            return resolvedArgs[0];
+        } else if (typeName === "string") {
+            convertedValue = +resolvedArgs[0];
+            if (!isNaN(convertedValue)) {
+                return convertedValue;
+            }
+        }
+        return null;
+    },
+
+    functionNotNull: function(resolvedArgs) {
+        for (var i = 0; i < resolvedArgs.length; i++) {
+            if (this.getTypeName(resolvedArgs[i]) !== "null") {
+                return resolvedArgs[i];
+            }
+        }
+        return null;
+    },
+
+    functionSort: function(resolvedArgs) {
+        var sortedArray = resolvedArgs[0].slice(0);
+        sortedArray.sort();
+        return sortedArray;
+    }
+
+  };
+
   function compile(stream) {
-      var parser = new Parser();
-      return parser.parse(stream);
+    var parser = new Parser();
+    var ast = parser.parse(stream);
+    return ast;
   }
 
   function tokenize(stream) {
@@ -934,10 +1245,12 @@
 
   function search(data, expression) {
       var parser = new Parser();
+      var runtime = new Runtime();
+      var interpreter = new TreeInterpreter(runtime);
       var node = parser.parse(expression);
-      var interpreter = new TreeInterpreter();
       return interpreter.search(node, data);
   }
+
   exports.tokenize = tokenize;
   exports.compile = compile;
   exports.search = search;
