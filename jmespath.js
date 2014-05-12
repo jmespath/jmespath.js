@@ -638,18 +638,18 @@
         var args = [];
         var expression, node;
         while (this.lookahead(0) !== "Rparen") {
-          if (this.lookahead(0) === 'Current') {
+          if (this.lookahead(0) === "Current") {
             expression = {type: "Current"};
             this.advance();
           } else {
             expression = this.expression(0);
           }
-          if (this.lookahead(0) === 'Comma') {
-            this.match('Comma');
+          if (this.lookahead(0) === "Comma") {
+            this.match("Comma");
           }
-          args.push(expression)
+          args.push(expression);
         }
-        this.match('Rparen');
+        this.match("Rparen");
         node = {type: "Function", name: name, children: args};
         return node;
       },
@@ -958,6 +958,7 @@
   };
 
   function Runtime(interpreter) {
+    this.interpreter = interpreter;
     this.functionTable = {
         // name: [function, <signature>]
         // The <signature> can be:
@@ -993,12 +994,12 @@
             func: this.functionJoin,
             signature: [
                 {types: ["string"]},
-                {types: ["array-string"]},
-            ],
+                {types: ["array-string"]}
+            ]
         },
-        to_string: {func: this.functionToString, signature: [{types: ["any"]}]},
-        to_number: {func: this.functionToNumber, signature: [{types: ["any"]}]},
-        not_null: {
+        "to_string": {func: this.functionToString, signature: [{types: ["any"]}]},
+        "to_number": {func: this.functionToNumber, signature: [{types: ["any"]}]},
+        "not_null": {
             func: this.functionNotNull,
             signature: [{types: ["any"], variadic: true}]
         }
@@ -1022,15 +1023,16 @@
         // If the last argument is declared as variadic, then we need
         // a minimum number of args to be required.  Otherwise it has to
         // be an exact amount.
+        var pluralized;
         if (signature[signature.length - 1].variadic) {
             if (args.length < signature.length) {
-                var pluralized = signature.length === 1 ? " argument": " arguments";
+                pluralized = signature.length === 1 ? " argument" : " arguments";
                 throw new Error("ArgumentError: " + name + "() " +
                                 "takes at least" + signature.length + pluralized +
                                 " but received " + args.length);
             }
         } else if (args.length !== signature.length) {
-            var pluralized = signature.length === 1 ? " argument": " arguments";
+            pluralized = signature.length === 1 ? " argument" : " arguments";
             throw new Error("ArgumentError: " + name + "() " +
                             "takes " + signature.length + pluralized +
                             " but received " + args.length);
@@ -1072,7 +1074,7 @@
             } else if (actual.indexOf("array") === 0) {
                 // Otherwise we need to check subtypes.
                 // I think this has potential to be improved.
-                var subtype = expected.split('-')[1];
+                var subtype = expected.split("-")[1];
                 for (var i = 0; i < argValue.length; i++) {
                     if (!this.typeMatches(
                             this.getTypeName(argValue[i]), subtype,
@@ -1090,22 +1092,16 @@
         switch (toString.call(obj)) {
             case "[object String]":
               return "string";
-              break;
             case "[object Number]":
               return "number";
-              break;
             case "[object Array]":
               return "array";
-              break;
             case "[object Boolean]":
               return "boolean";
-              break;
             case "[object Null]":
               return "null";
-              break;
             case "[object Object]":
               return "object";
-              break;
         }
     },
 
@@ -1180,7 +1176,7 @@
     functionValues: function(resolvedArgs) {
         var obj = resolvedArgs[0];
         var keys = Object.keys(obj);
-        var values = []
+        var values = [];
         for (var i = 0; i < keys.length; i++) {
             values.push(obj[keys[i]]);
         }
@@ -1194,7 +1190,7 @@
     },
 
     functionToString: function(resolvedArgs) {
-        if (this.getTypeName(resolvedArgs[0]) === 'string') {
+        if (this.getTypeName(resolvedArgs[0]) === "string") {
             return resolvedArgs[0];
         } else {
             return JSON.stringify(resolvedArgs[0]);
