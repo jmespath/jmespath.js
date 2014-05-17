@@ -490,6 +490,11 @@
           return {type: "Field", name: token.value};
       },
 
+      nudExpref: function() {
+        var expression = this.expression(this.bindingPower.Expref);
+        return {type: "ExpressionReference", children: [expression]};
+      },
+
       nudQuotedIdentifier: function(token) {
           var node = {type: "Field", name: token.value};
           if (this.lookahead(0) === "Lparen") {
@@ -954,8 +959,25 @@
             resolvedArgs.push(this.visit(node.children[i], value));
         }
         return this.runtime.callFunction(node.name, resolvedArgs);
+      },
+
+      visitExpressionReference: function(node, value) {
+        var node = node.children[0];
+        // Tag the node with a specific attribute so the type
+        // checker verify the type.
+        node.jmespathType = "Expref";
+        return node;
       }
   };
+
+  function Expref(expression) {
+    this.expression = expression;
+    // Add a specific attribute so that the type checker
+    // knows if we're an expression reference type.  We don't
+    // want to rely on .constructor or .constructor.name because
+    // of portability issues.
+    this.jmespathClassName = "Expref";
+  }
 
   function Runtime(interpreter) {
     this.interpreter = interpreter;
@@ -984,12 +1006,24 @@
             func: this.functionLength,
             signature: [{types: ["string", "array", "object"]}]},
         max: {func: this.functionMax, signature: [{types: ["array-number"]}]},
+        "max_by": {
+          func: this.functionMaxBy,
+          signature: [{types: ["array"]}, {types: ["expref"]}]
+        },
         sum: {func: this.functionSum, signature: [{types: ["array-number"]}]},
         min: {func: this.functionMin, signature: [{types: ["array-number"]}]},
+        "min_by": {
+          func: this.functionMinBy,
+          signature: [{types: ["array"]}, {types: ["expref"]}]
+        },
         type: {func: this.functionType, signature: [{types: ["any"]}]},
         keys: {func: this.functionKeys, signature: [{types: ["object"]}]},
         values: {func: this.functionValues, signature: [{types: ["object"]}]},
         sort: {func: this.functionSort, signature: [{types: ["array-string", "array-number"]}]},
+        "sort_by": {
+          func: this.functionSortBy,
+          signature: [{types: ["array"]}, {types: ["expref"]}]
+        },
         join: {
             func: this.functionJoin,
             signature: [
@@ -1008,7 +1042,6 @@
 
   Runtime.prototype = {
     callFunction: function(name, resolvedArgs) {
-      console.log("Calling function: " + name + " with args: " + resolvedArgs);
       var functionEntry = this.functionTable[name];
       if (functionEntry === undefined) {
           throw new Error("Unknown function: " + name + "()");
@@ -1101,7 +1134,13 @@
             case "[object Null]":
               return "null";
             case "[object Object]":
-              return "object";
+              // Check if it's an expref.  If it has, it's been
+              // tagged with a jmespathType attr of 'Expref';
+              if (obj.jmespathType === "Expref") {
+                return "expref";
+              } else {
+                return "object";
+              }
         }
     },
 
@@ -1224,6 +1263,100 @@
         var sortedArray = resolvedArgs[0].slice(0);
         sortedArray.sort();
         return sortedArray;
+    },
+
+    functionSortBy: function(resolvedArgs) {
+        var sortedArray = resolvedArgs[0].slice(0);
+        if (!sortedArray) {
+            return sortedArray;
+        }
+        var interpreter = this.interpreter;
+        var exprefNode = resolvedArgs[1];
+        var requiredType = this.getTypeName(
+            interpreter.visit(exprefNode, sortedArray[0]));
+        if (["number", "string"].indexOf(requiredType) < 0) {
+            throw new Error("TypeError");
+        }
+        var that = this;
+        sortedArray.sort(function(a, b) {
+          var exprA = interpreter.visit(exprefNode, a);
+          var exprB = interpreter.visit(exprefNode, b);
+          if (that.getTypeName(exprA) !== requiredType) {
+              throw new Error(
+                  "TypeError: expected " + requiredType + ", received "
+                  + that.getTypeName(exprA));
+          } else if (that.getTypeName(exprB) !== requiredType) {
+              throw new Error(
+                  "TypeError: expected " + requiredType + ", received "
+                  + that.getTypeName(exprB));
+          }
+          if (exprA > exprB) {
+            return 1;
+          } else if (exprA < exprB) {
+            return -1;
+          } else {
+            return 0;
+          }
+        });
+        return sortedArray;
+    },
+
+    functionMaxBy: function(resolvedArgs) {
+        var interpreter = this.interpreter;
+        var exprefNode = resolvedArgs[1];
+        var that = this;
+        var resolvedArray = resolvedArgs[0].slice(0);
+        if (resolvedArray.length === 1) {
+            return resolvedArray[0];
+        }
+        var maxFound = interpreter.visit(exprefNode, resolvedArray[0]);
+        var maxRecord = resolvedArray[0];
+        if (this.getTypeName(maxFound) !== "number") {
+            throw new Error("TypeError");
+        }
+        var current;
+        for (var i = 0; i < resolvedArray.length; i++) {
+            current = interpreter.visit(exprefNode, resolvedArray[i]);
+            if (this.getTypeName(current) !== "number") {
+              throw new Error(
+                  "TypeError: expected number, received " +
+                  this.getTypeName(current));
+            }
+            if (current > maxFound) {
+                maxFound = current;
+                maxRecord = resolvedArray[i];
+            }
+        }
+        return maxRecord;
+    },
+
+    functionMinBy: function(resolvedArgs) {
+        var interpreter = this.interpreter;
+        var exprefNode = resolvedArgs[1];
+        var that = this;
+        var resolvedArray = resolvedArgs[0].slice(0);
+        if (resolvedArray.length === 1) {
+            return resolvedArray[0];
+        }
+        var minFound = interpreter.visit(exprefNode, resolvedArray[0]);
+        var minRecord = resolvedArray[0];
+        if (this.getTypeName(minFound) !== "number") {
+            throw new Error("TypeError");
+        }
+        var current;
+        for (var i = 0; i < resolvedArray.length; i++) {
+            current = interpreter.visit(exprefNode, resolvedArray[i]);
+            if (this.getTypeName(current) !== "number") {
+              throw new Error(
+                  "TypeError: expected number, received " +
+                  this.getTypeName(current));
+            }
+            if (current < minFound) {
+                minFound = current;
+                minRecord = resolvedArray[i];
+            }
+        }
+        return minRecord;
     }
 
   };
@@ -1241,8 +1374,12 @@
 
   function search(data, expression) {
       var parser = new Parser();
+      // This needs to be improved.  Both the interpreter and runtime depend on
+      // each other.  The runtime needs the interpreter to support exprefs.
+      // There's likely a clean way to avoid the cyclic dependency.
       var runtime = new Runtime();
       var interpreter = new TreeInterpreter(runtime);
+      runtime.interpreter = interpreter;
       var node = parser.parse(expression);
       return interpreter.search(node, data);
   }

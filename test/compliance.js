@@ -22,6 +22,7 @@ for (var i = 0; i < listing.length; i++) {
 function addTestSuitesFromFile(filename) {
     describe(filename, function() {
         var spec = JSON.parse(fs.readFileSync(filename, 'utf-8'));
+        var errorMsg;
         for (var i = 0; i < spec.length; i++) {
             var msg = "suite " + i + " for filename " + filename;
             describe(msg, function() {
@@ -37,7 +38,7 @@ function addTestSuitesFromFile(filename) {
                               assert.throws(
                                   function() {
                                     search(given, testcase.expression);
-                                  }, Error);
+                                  }, Error, testcase.expression);
                           });
                         })(testcase, given);
                     } else {
