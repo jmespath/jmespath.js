@@ -961,23 +961,14 @@
         return this.runtime.callFunction(node.name, resolvedArgs);
       },
 
-      visitExpressionReference: function(node, value) {
-        var node = node.children[0];
+      visitExpressionReference: function(node) {
+        var refNode = node.children[0];
         // Tag the node with a specific attribute so the type
         // checker verify the type.
-        node.jmespathType = "Expref";
-        return node;
+        refNode.jmespathType = "Expref";
+        return refNode;
       }
   };
-
-  function Expref(expression) {
-    this.expression = expression;
-    // Add a specific attribute so that the type checker
-    // knows if we're an expression reference type.  We don't
-    // want to rely on .constructor or .constructor.name because
-    // of portability issues.
-    this.jmespathClassName = "Expref";
-  }
 
   function Runtime(interpreter) {
     this.interpreter = interpreter;
@@ -1283,12 +1274,12 @@
           var exprB = interpreter.visit(exprefNode, b);
           if (that.getTypeName(exprA) !== requiredType) {
               throw new Error(
-                  "TypeError: expected " + requiredType + ", received "
-                  + that.getTypeName(exprA));
+                  "TypeError: expected " + requiredType + ", received " +
+                  that.getTypeName(exprA));
           } else if (that.getTypeName(exprB) !== requiredType) {
               throw new Error(
-                  "TypeError: expected " + requiredType + ", received "
-                  + that.getTypeName(exprB));
+                  "TypeError: expected " + requiredType + ", received " +
+                  that.getTypeName(exprB));
           }
           if (exprA > exprB) {
             return 1;
@@ -1302,61 +1293,52 @@
     },
 
     functionMaxBy: function(resolvedArgs) {
-        var interpreter = this.interpreter;
-        var exprefNode = resolvedArgs[1];
-        var that = this;
-        var resolvedArray = resolvedArgs[0].slice(0);
-        if (resolvedArray.length === 1) {
-            return resolvedArray[0];
+      var exprefNode = resolvedArgs[1];
+      var resolvedArray = resolvedArgs[0];
+      var keyFunction = this.createKeyFunction(exprefNode, ["number"]);
+      var maxNumber = -Infinity;
+      var maxRecord;
+      var current;
+      for (var i = 0; i < resolvedArray.length; i++) {
+        current = keyFunction(resolvedArray[i]);
+        if (current > maxNumber) {
+          maxNumber = current;
+          maxRecord = resolvedArray[i];
         }
-        var maxFound = interpreter.visit(exprefNode, resolvedArray[0]);
-        var maxRecord = resolvedArray[0];
-        if (this.getTypeName(maxFound) !== "number") {
-            throw new Error("TypeError");
-        }
-        var current;
-        for (var i = 0; i < resolvedArray.length; i++) {
-            current = interpreter.visit(exprefNode, resolvedArray[i]);
-            if (this.getTypeName(current) !== "number") {
-              throw new Error(
-                  "TypeError: expected number, received " +
-                  this.getTypeName(current));
-            }
-            if (current > maxFound) {
-                maxFound = current;
-                maxRecord = resolvedArray[i];
-            }
-        }
-        return maxRecord;
+      }
+      return maxRecord;
     },
 
     functionMinBy: function(resolvedArgs) {
-        var interpreter = this.interpreter;
-        var exprefNode = resolvedArgs[1];
-        var that = this;
-        var resolvedArray = resolvedArgs[0].slice(0);
-        if (resolvedArray.length === 1) {
-            return resolvedArray[0];
+      var exprefNode = resolvedArgs[1];
+      var resolvedArray = resolvedArgs[0];
+      var keyFunction = this.createKeyFunction(exprefNode, ["number"]);
+      var minNumber = Infinity;
+      var minRecord;
+      var current;
+      for (var i = 0; i < resolvedArray.length; i++) {
+        current = keyFunction(resolvedArray[i]);
+        if (current < minNumber) {
+          minNumber = current;
+          minRecord = resolvedArray[i];
         }
-        var minFound = interpreter.visit(exprefNode, resolvedArray[0]);
-        var minRecord = resolvedArray[0];
-        if (this.getTypeName(minFound) !== "number") {
-            throw new Error("TypeError");
+      }
+      return minRecord;
+    },
+
+    createKeyFunction: function(exprefNode, allowedTypes) {
+      var that = this;
+      var interpreter = this.interpreter;
+      var keyFunc = function(x) {
+        var current = interpreter.visit(exprefNode, x);
+        if (allowedTypes.indexOf(that.getTypeName(current)) < 0) {
+          var msg = "TypeError: expected one of " + allowedTypes +
+                    ", received " + that.getTypeName(current);
+          throw new Error(msg);
         }
-        var current;
-        for (var i = 0; i < resolvedArray.length; i++) {
-            current = interpreter.visit(exprefNode, resolvedArray[i]);
-            if (this.getTypeName(current) !== "number") {
-              throw new Error(
-                  "TypeError: expected number, received " +
-                  this.getTypeName(current));
-            }
-            if (current < minFound) {
-                minFound = current;
-                minRecord = resolvedArray[i];
-            }
-        }
-        return minRecord;
+        return current;
+      };
+      return keyFunc;
     }
 
   };
