@@ -1269,9 +1269,20 @@
             throw new Error("TypeError");
         }
         var that = this;
-        sortedArray.sort(function(a, b) {
-          var exprA = interpreter.visit(exprefNode, a);
-          var exprB = interpreter.visit(exprefNode, b);
+        // In order to get a stable sort out of an unstable
+        // sort algorithm, we decorate/sort/undecorate (DSU)
+        // by creating a new list of [index, element] pairs.
+        // In the cmp function, if the evaluated elements are
+        // equal, then the index will be used as the tiebreaker.
+        // After the decorated list has been sorted, it will be
+        // undecorated to extract the original elements.
+        var decorated = [];
+        for (var i = 0; i < sortedArray.length; i++) {
+          decorated.push([i, sortedArray[i]]);
+        }
+        decorated.sort(function(a, b) {
+          var exprA = interpreter.visit(exprefNode, a[1]);
+          var exprB = interpreter.visit(exprefNode, b[1]);
           if (that.getTypeName(exprA) !== requiredType) {
               throw new Error(
                   "TypeError: expected " + requiredType + ", received " +
@@ -1286,9 +1297,16 @@
           } else if (exprA < exprB) {
             return -1;
           } else {
-            return 0;
+            // If they're equal compare the items by their
+            // order to maintain relative order of equal keys
+            // (i.e. to get a stable sort).
+            return a[0] - b[0];
           }
         });
+        // Undecorate: extract out the original list elements.
+        for (var j = 0; j < decorated.length; j++) {
+          sortedArray[j] = decorated[j][1];
+        }
         return sortedArray;
     },
 
