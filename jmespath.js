@@ -992,17 +992,27 @@
         contains: {
             func: this.functionContains,
             signature: [{types: ["string", "array"]}, {types: ["any"]}]},
+        ends_with: {
+            func: this.functionEndsWith,
+            signature: [{types: ["string"]}, {types: ["string"]}]},
         floor: {func: this.functionFloor, signature: [{types: ["number"]}]},
         length: {
             func: this.functionLength,
             signature: [{types: ["string", "array", "object"]}]},
-        max: {func: this.functionMax, signature: [{types: ["array-number"]}]},
+        max: {
+            func: this.functionMax,
+            signature: [{types: ["array-number", "array-string"]}]},
         "max_by": {
           func: this.functionMaxBy,
           signature: [{types: ["array"]}, {types: ["expref"]}]
         },
         sum: {func: this.functionSum, signature: [{types: ["array-number"]}]},
-        min: {func: this.functionMin, signature: [{types: ["array-number"]}]},
+        starts_with: {
+            func: this.functionStartsWith,
+            signature: [{types: ["string"]}, {types: ["string"]}]},
+        min: {
+            func: this.functionMin,
+            signature: [{types: ["array-number", "array-string"]}]},
         "min_by": {
           func: this.functionMinBy,
           signature: [{types: ["array"]}, {types: ["expref"]}]
@@ -1022,6 +1032,9 @@
                 {types: ["array-string"]}
             ]
         },
+        reverse: {
+            func: this.functionReverse,
+            signature: [{types: ["string", "array"]}]},
         "to_string": {func: this.functionToString, signature: [{types: ["any"]}]},
         "to_number": {func: this.functionToNumber, signature: [{types: ["any"]}]},
         "not_null": {
@@ -1135,6 +1148,32 @@
         }
     },
 
+    functionStartsWith: function(resolvedArgs) {
+        return resolvedArgs[0].lastIndexOf(resolvedArgs[1]) === 0;
+    },
+
+    functionEndsWith: function(resolvedArgs) {
+        var search = resolvedArgs[0];
+        var suffix = resolvedArgs[1];
+        return search.indexOf(suffix, search.length - suffix.length) !== -1;
+    },
+
+    functionReverse: function(resolvedArgs) {
+        var typeName = this.getTypeName(resolvedArgs[0]);
+        if (typeName === "string") {
+          var originalStr = resolvedArgs[0];
+          var reversedStr = "";
+          for (var i = originalStr.length - 1; i >= 0; i--) {
+              reversedStr += originalStr[i]
+          }
+          return reversedStr;
+        } else {
+          var reversedArray = resolvedArgs[0].slice(0);
+          reversedArray.reverse();
+          return reversedArray;
+        }
+    },
+
     functionAbs: function(resolvedArgs) {
       return Math.abs(resolvedArgs[0]);
     },
@@ -1172,7 +1211,19 @@
 
     functionMax: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
-        return Math.max.apply(Math, resolvedArgs[0]);
+        var typeName = this.getTypeName(resolvedArgs[0][0]);
+        if (typeName === "number") {
+          return Math.max.apply(Math, resolvedArgs[0]);
+        } else {
+          var elements = resolvedArgs[0];
+          var maxElement = elements[0];
+          for (var i = 1; i < elements.length; i++) {
+              if (maxElement.localeCompare(elements[i]) < 0) {
+                  maxElement = elements[i];
+              }
+          }
+          return maxElement;
+        }
       } else {
           return null;
       }
@@ -1180,7 +1231,19 @@
 
     functionMin: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
-        return Math.min.apply(Math, resolvedArgs[0]);
+        var typeName = this.getTypeName(resolvedArgs[0][0]);
+        if (typeName === "number") {
+          return Math.min.apply(Math, resolvedArgs[0]);
+        } else {
+          var elements = resolvedArgs[0];
+          var minElement = elements[0];
+          for (var i = 1; i < elements.length; i++) {
+              if (elements[i].localeCompare(minElement) < 0) {
+                  minElement = elements[i];
+              }
+          }
+          return minElement;
+        }
       } else {
         return null;
       }

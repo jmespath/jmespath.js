@@ -43,7 +43,7 @@ function addTestSuitesFromFile(filename) {
                         })(testcase, given);
                     } else {
                         (function(testcase, given) {
-                          it('should pass test ' + j, function() {
+                          it('should pass test ' + j + " expression: " + testcase.expression, function() {
                               assert.deepEqual(search(given, testcase.expression),
                                                testcase.result);
                           });
