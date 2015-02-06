@@ -528,13 +528,8 @@
       },
 
       nudLbracket: function() {
-          if (this.lookahead(0) === "Number") {
-              var node = {
-                  type: "Index",
-                  value: this.lookaheadToken(0).value};
-              this.advance();
-              this.match("Rbracket");
-              return node;
+          if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
+              return this.parseIndexExpression();
           } else if (this.lookahead(0) === "Star" &&
                      this.lookahead(1) === "Rbracket") {
               this.advance();
@@ -545,6 +540,48 @@
           } else {
               return this.parseMultiselectList();
           }
+      },
+
+      parseIndexExpression: function() {
+          if (this.lookahead(0) === "Colon" || this.lookahead(1) === "Colon") {
+              return this.parseSliceExpression();
+          } else {
+              var node = {
+                  type: "Index",
+                  value: this.lookaheadToken(0).value};
+              this.advance();
+              this.match("Rbracket");
+              return node;
+          }
+      },
+
+      parseSliceExpression: function() {
+          // [start:end:step] where each part is optional, as well as the last
+          // colon.
+          var parts = [null, null, null];
+          var index = 0;
+          var currentToken = this.lookahead(0);
+          while (currentToken !== "Rbracket" && index < 3) {
+              if (currentToken === "Colon") {
+                  index++;
+                  this.advance();
+              } else if (currentToken === "Number") {
+                  parts[index] = this.lookaheadToken(0).value;
+                  this.advance();
+              } else {
+                  var t = this.lookahead(0);
+                  var error = new Error("Syntax error, unexpected token: " +
+                                        t.value + "(" + t.type + ")");
+                  error.name = "Parsererror";
+                  throw error;
+              }
+              currentToken = this.lookahead(0);
+          }
+          this.match("Rbracket");
+          return {
+              type: "Slice",
+              children: parts
+          };
       },
 
       nudLbrace: function() {
@@ -613,10 +650,8 @@
       ledLbracket: function(left) {
           var token = this.lookaheadToken(0);
           var right;
-          if (token.type === "Number") {
-              this.match("Number");
-              right = {type: "Index", value: token.value};
-              this.match("Rbracket");
+          if (token.type === "Number" || token.type === "Colon") {
+              right = this.parseIndexExpression();
               return {type: "IndexExpression", children: [left, right]};
           } else {
               this.match("Star");
@@ -800,6 +835,72 @@
           result = null;
         }
         return result;
+      },
+
+      visitSlice: function(node, value) {
+        if (!isArray(value)) {
+          return null;
+        }
+        var sliceParams = node.children.slice(0);
+        var computed = this.computeSliceParams(value.length, sliceParams);
+        var start = computed[0];
+        var stop = computed[1];
+        var step = computed[2];
+        var result = [];
+        var i;
+        if (step > 0) {
+            for (i =  start;  i < stop; i += step) {
+                result.push(value[i]);
+            }
+        } else {
+            for (i = start; i  > stop;  i += step) {
+                result.push(value[i]);
+            }
+        }
+        return result;
+      },
+
+      computeSliceParams: function(arrayLength, sliceParams) {
+        var start = sliceParams[0];
+        var stop = sliceParams[1];
+        var step = sliceParams[2];
+        var computed = [null, null, null];
+        if (step === null) {
+          step  = 1;
+        } else if (step === 0) {
+          var error = new Error("Invalid slice, step cannot be 0");
+          error.name = "RuntimeError";
+          throw error;
+        }
+        var stepValueNegative = step < 0 ? true : false;
+
+        if (start === null) {
+            start = stepValueNegative ? arrayLength - 1 : 0;
+        } else {
+            start = this.capSliceRange(arrayLength, start, step);
+        }
+
+        if (stop === null) {
+            stop = stepValueNegative ? -1 : arrayLength;
+        } else {
+            stop = this.capSliceRange(arrayLength, stop, step);
+        }
+        computed[0] = start;
+        computed[1] = stop;
+        computed[2] = step;
+        return computed;
+      },
+
+      capSliceRange: function(arrayLength, actualValue, step) {
+          if (actualValue < 0) {
+              actualValue += arrayLength;
+              if (actualValue < 0)  {
+                  actualValue = step < 0 ? -1 : 0;
+              }
+          } else if (actualValue >= arrayLength) {
+              actualValue = step < 0 ? arrayLength - 1 : arrayLength;
+          }
+          return actualValue;
       },
 
       visitProjection: function(node, value) {
@@ -992,7 +1093,7 @@
         contains: {
             func: this.functionContains,
             signature: [{types: ["string", "array"]}, {types: ["any"]}]},
-        ends_with: {
+        "ends_with": {
             func: this.functionEndsWith,
             signature: [{types: ["string"]}, {types: ["string"]}]},
         floor: {func: this.functionFloor, signature: [{types: ["number"]}]},
@@ -1007,7 +1108,7 @@
           signature: [{types: ["array"]}, {types: ["expref"]}]
         },
         sum: {func: this.functionSum, signature: [{types: ["array-number"]}]},
-        starts_with: {
+        "starts_with": {
             func: this.functionStartsWith,
             signature: [{types: ["string"]}, {types: ["string"]}]},
         min: {
@@ -1164,7 +1265,7 @@
           var originalStr = resolvedArgs[0];
           var reversedStr = "";
           for (var i = originalStr.length - 1; i >= 0; i--) {
-              reversedStr += originalStr[i]
+              reversedStr += originalStr[i];
           }
           return reversedStr;
         } else {
@@ -1376,7 +1477,7 @@
     functionMaxBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
-      var keyFunction = this.createKeyFunction(exprefNode, ["number"]);
+      var keyFunction = this.createKeyFunction(exprefNode, ["number", "string"]);
       var maxNumber = -Infinity;
       var maxRecord;
       var current;
@@ -1393,7 +1494,7 @@
     functionMinBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
-      var keyFunction = this.createKeyFunction(exprefNode, ["number"]);
+      var keyFunction = this.createKeyFunction(exprefNode, ["number", "string"]);
       var minNumber = Infinity;
       var minRecord;
       var current;
