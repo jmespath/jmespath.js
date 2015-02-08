@@ -49,7 +49,7 @@ tour of the language, the *best* place to go is the
 One of the best things about JMESPath is that it is
 implemented in many different programming languages including
 python, ruby, php, lua, etc.  To see a complete list of libraries,
-check out: http://jmespath.org/libraries.html.
+check out the [JMESPath libraries page](http://jmespath.org/libraries.html).
 
 And finally, the full JMESPath specification can be found
 on the [JMESPath site](http://jmespath.org/specification.html).
