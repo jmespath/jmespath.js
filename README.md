@@ -2,4 +2,4 @@
 
 This is a javascript implementation of JMESPath.
 
-See http://jmespath.readthedocs.org/en/latest/ for more info.
+See http://jmespath.org for more info.
