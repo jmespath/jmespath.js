@@ -1,5 +1,7 @@
 # jmespath.js
 
+[![Build Status](https://travis-ci.org/jmespath/jmespath.js?branch=master)](https://travis-ci.org/jmespath/jmespath.js)
+
 jmespath.js is a javascript implementation of JMESPath,
 which is a query language for JSON.  It will take a JSON
 document and transform it into another JSON document
