@@ -84,12 +84,13 @@
         return true;
     } else if (isObject(obj)) {
         // Check for an empty object.
-        var key;
-        for (key in obj) {
+        for (var key in obj) {
             // If there are any keys, then
             // the object is not empty so the object
             // is not false.
-            return false;
+            if (obj.hasOwnProperty(key)) {
+              return false;
+            }
         }
         return true;
     } else {
@@ -849,11 +850,11 @@
         var result = [];
         var i;
         if (step > 0) {
-            for (i =  start;  i < stop; i += step) {
+            for (i = start; i < stop; i += step) {
                 result.push(value[i]);
             }
         } else {
-            for (i = start; i  > stop;  i += step) {
+            for (i = start; i > stop; i += step) {
                 result.push(value[i]);
             }
         }
@@ -866,7 +867,7 @@
         var step = sliceParams[2];
         var computed = [null, null, null];
         if (step === null) {
-          step  = 1;
+          step = 1;
         } else if (step === 0) {
           var error = new Error("Invalid slice, step cannot be 0");
           error.name = "RuntimeError";
@@ -894,7 +895,7 @@
       capSliceRange: function(arrayLength, actualValue, step) {
           if (actualValue < 0) {
               actualValue += arrayLength;
-              if (actualValue < 0)  {
+              if (actualValue < 0) {
                   actualValue = step < 0 ? -1 : 0;
               }
           } else if (actualValue >= arrayLength) {
@@ -968,7 +969,7 @@
             result = strictDeepEqual(first, second);
             break;
           case "NE":
-            result = ! strictDeepEqual(first, second);
+            result = !strictDeepEqual(first, second);
             break;
           case "GT":
             result = first > second;
@@ -1254,9 +1255,9 @@
     },
 
     functionEndsWith: function(resolvedArgs) {
-        var search = resolvedArgs[0];
+        var searchStr = resolvedArgs[0];
         var suffix = resolvedArgs[1];
-        return search.indexOf(suffix, search.length - suffix.length) !== -1;
+        return searchStr.indexOf(suffix, searchStr.length - suffix.length) !== -1;
     },
 
     functionReverse: function(resolvedArgs) {
