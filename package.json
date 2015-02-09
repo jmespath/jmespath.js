@@ -44,5 +44,7 @@
     "json",
     "xpath"
   ],
-  "scripts": {}
+  "scripts": {
+    "test": "mocha test/"
+  }
 }
