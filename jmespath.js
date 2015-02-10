@@ -530,7 +530,8 @@
 
       nudLbracket: function() {
           if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
-              return this.parseIndexExpression();
+              var right = this.parseIndexExpression();
+              return this.projectIfSlice({type: "Identity"}, right);
           } else if (this.lookahead(0) === "Star" &&
                      this.lookahead(1) === "Rbracket") {
               this.advance();
@@ -553,6 +554,18 @@
               this.advance();
               this.match("Rbracket");
               return node;
+          }
+      },
+
+      projectIfSlice: function(left, right) {
+          var indexExpr = {type: "IndexExpression", children: [left, right]};
+          if (right.type === "Slice") {
+              return {
+                  type: "Projection",
+                  children: [indexExpr, this.parseProjectionRHS(this.bindingPower.Star)]
+              };
+          } else {
+              return indexExpr;
           }
       },
 
@@ -653,7 +666,7 @@
           var right;
           if (token.type === "Number" || token.type === "Colon") {
               right = this.parseIndexExpression();
-              return {type: "IndexExpression", children: [left, right]};
+              return this.projectIfSlice(left, right);
           } else {
               this.match("Star");
               this.match("Rbracket");
