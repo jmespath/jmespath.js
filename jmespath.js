@@ -528,6 +528,10 @@
           return {type: "ValueProjection", children: [left, right]};
       },
 
+      nudCurrent: function() {
+          return {type: "Current"};
+      },
+
       nudLbracket: function() {
           if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
               var right = this.parseIndexExpression();
