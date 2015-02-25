@@ -533,14 +533,15 @@
       },
 
       nudLbracket: function() {
+          var right;
           if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
-              var right = this.parseIndexExpression();
+              right = this.parseIndexExpression();
               return this.projectIfSlice({type: "Identity"}, right);
           } else if (this.lookahead(0) === "Star" &&
                      this.lookahead(1) === "Rbracket") {
               this.advance();
               this.advance();
-              var right = this.parseProjectionRHS(this.bindingPower.Star);
+              right = this.parseProjectionRHS(this.bindingPower.Star);
               return {type: "Projection",
                       children: [{type: "Identity"}, right]};
           } else {
