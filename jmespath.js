@@ -1090,7 +1090,8 @@
       }
   };
 
-  function Runtime(interpreter) {
+  function Runtime(interpreter, options) {
+    this.options = options || {};
     this.interpreter = interpreter;
     this.functionTable = {
         // name: [function, <signature>]
@@ -1168,7 +1169,10 @@
     callFunction: function(name, resolvedArgs) {
       var functionEntry = this.functionTable[name];
       if (functionEntry === undefined) {
-          throw new Error("Unknown function: " + name + "()");
+        if(this.options.resolveUnknownFunction) {
+          return this.options.resolveUnknownFunction(name, resolvedArgs, this);
+        }
+        throw new Error("Unknown function: " + name + "()");
       }
       this.validateArgs(name, resolvedArgs, functionEntry.signature);
       return functionEntry.func.call(this, resolvedArgs);
@@ -1555,12 +1559,12 @@
       return lexer.tokenize(stream);
   }
 
-  function search(data, expression) {
+  function search(data, expression, options) {
       var parser = new Parser();
       // This needs to be improved.  Both the interpreter and runtime depend on
       // each other.  The runtime needs the interpreter to support exprefs.
       // There's likely a clean way to avoid the cyclic dependency.
-      var runtime = new Runtime();
+      var runtime = new Runtime(undefined, options);
       var interpreter = new TreeInterpreter(runtime);
       runtime.interpreter = interpreter;
       var node = parser.parse(expression);
