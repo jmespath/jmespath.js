@@ -215,3 +215,12 @@ describe('strictDeepEqual', function() {
                             {a: {b: [1, 4]}}), false);
     });
 });
+
+describe('options', function() {
+    it('should accept custom functions', function() {
+        assert.deepEqual(
+          jmespath.search({ x: [5,6,7] }, "example(x[1])", {
+            resolveUnknownFunction: function(fn, args) { return { fn: fn, output: args[0]*2 };}}),
+          { fn: "example", output: 12 });
+    });
+});
