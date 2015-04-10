@@ -403,9 +403,9 @@
           "Or": 5,
           "Flatten": 6,
           "Star": 20,
+          "Filter": 20,
           "Dot": 40,
           "Lbrace": 50,
-          "Filter": 50,
           "Lbracket": 55,
           "Lparen": 60
       };
@@ -1122,6 +1122,10 @@
         max: {
             func: this.functionMax,
             signature: [{types: ["array-number", "array-string"]}]},
+        "merge": {
+            func: this.functionMerge,
+            signature: [{types: ["object"], variadic: true}]
+        },
         "max_by": {
           func: this.functionMaxBy,
           signature: [{types: ["array"]}, {types: ["expref"]}]
@@ -1155,6 +1159,7 @@
         reverse: {
             func: this.functionReverse,
             signature: [{types: ["string", "array"]}]},
+        "to_array": {func: this.functionToArray, signature: [{types: ["any"]}]},
         "to_string": {func: this.functionToString, signature: [{types: ["any"]}]},
         "to_number": {func: this.functionToNumber, signature: [{types: ["any"]}]},
         "not_null": {
@@ -1329,6 +1334,17 @@
        }
     },
 
+    functionMerge: function(resolvedArgs) {
+      var merged = {};
+      for (var i = 0; i < resolvedArgs.length; i++) {
+        var current = resolvedArgs[i];
+        for (var key in current) {
+          merged[key] = current[key];
+        }
+      }
+      return merged;
+    },
+
     functionMax: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
         var typeName = this.getTypeName(resolvedArgs[0][0]);
@@ -1402,6 +1418,14 @@
         return listJoin.join(joinChar);
     },
 
+    functionToArray: function(resolvedArgs) {
+        if (this.getTypeName(resolvedArgs[0]) === "array") {
+            return resolvedArgs[0];
+        } else {
+            return [resolvedArgs[0]];
+        }
+    },
+
     functionToString: function(resolvedArgs) {
         if (this.getTypeName(resolvedArgs[0]) === "string") {
             return resolvedArgs[0];
@@ -1441,7 +1465,7 @@
 
     functionSortBy: function(resolvedArgs) {
         var sortedArray = resolvedArgs[0].slice(0);
-        if (!sortedArray) {
+        if (sortedArray.length === 0) {
             return sortedArray;
         }
         var interpreter = this.interpreter;
