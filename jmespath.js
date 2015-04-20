@@ -214,6 +214,12 @@
                   tokens.push({type: "QuotedIdentifier",
                                value: identifier,
                                start: start});
+              } else if (stream[this.current] === "'") {
+                  start = this.current;
+                  identifier = this.consumeRawStringLiteral(stream);
+                  tokens.push({type: "Literal",
+                               value: identifier,
+                               start: start});
               } else if (stream[this.current] === "`") {
                   start = this.current;
                   var literal = this.consumeLiteral(stream);
@@ -269,6 +275,25 @@
           }
           this.current++;
           return JSON.parse(stream.slice(start, this.current));
+      },
+
+      consumeRawStringLiteral: function(stream) {
+          var start = this.current;
+          this.current++;
+          var maxLength = stream.length;
+          while (stream[this.current] !== "'" && this.current < maxLength) {
+              // You can escape a single quote and you can escape an escape.
+              var current = this.current;
+              if (stream[current] === "\\" && (stream[current + 1] === "\\" ||
+                                               stream[current + 1] === "'")) {
+                  current += 2;
+              } else {
+                  current++;
+              }
+              this.current = current;
+          }
+          this.current++;
+          return stream.slice(start + 1, this.current - 1);
       },
 
       consumeNumber: function(stream) {
