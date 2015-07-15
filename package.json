@@ -1,5 +1,5 @@
 {
-  "name": "jmespath",
+  "name": "@trax/jmespath",
   "description": "JMESPath implementation in javascript",
   "version": "0.12.0",
   "author": {
