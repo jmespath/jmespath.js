@@ -817,6 +817,33 @@
   };
 
 
+  function ScopeChain() {
+      this.scopes = [];
+  }
+
+  ScopeChain.prototype = {
+      pushScope: function(scope) {
+          this.scopes.push(scope);
+      },
+
+      popScope: function() {
+          this.scopes.pop();
+      },
+
+      resolveReference: function(name) {
+          var currentScope;
+          var currentValue;
+          for (var i = this.scopes.length - 1; i >= 0; i--) {
+              currentScope = this.scopes[i];
+              currentValue = currentScope[name];
+              if (currentValue !== undefined) {
+                  return currentValue;
+              }
+          }
+          return null;
+      }
+  };
+
   function TreeInterpreter(runtime) {
     this.scopeChain = new ScopeChain();
     this.runtime = runtime;
@@ -1117,33 +1144,6 @@
         refNode.jmespathType = "Expref";
         refNode.context = value;
         return refNode;
-      }
-  };
-
-  function ScopeChain() {
-      this.scopes = [];
-  }
-
-  ScopeChain.prototype = {
-      pushScope: function(scope) {
-          this.scopes.push(scope);
-      },
-
-      popScope: function() {
-          this.scopes.pop();
-      },
-
-      resolveReference: function(name) {
-          var currentScope;
-          var currentValue;
-          for (var i = this.scopes.length - 1; i >= 0; i--) {
-              currentScope = this.scopes[i];
-              currentValue = currentScope[name];
-              if (currentValue !== undefined) {
-                  return currentValue;
-              }
-          }
-          return null;
       }
   };
 
