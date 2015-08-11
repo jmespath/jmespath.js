@@ -818,7 +818,9 @@
 
 
   function TreeInterpreter(runtime) {
+    this.scopeChain = new ScopeChain();
     this.runtime = runtime;
+    this.runtime.scopeChain = this.scopeChain;
   }
 
   TreeInterpreter.prototype = {
@@ -840,7 +842,9 @@
           } else if (isObject(value)) {
               var field = value[node.name];
               if (field === undefined) {
-                  return null;
+                  // If the field is not defined in the current scope,
+                  // fall back to the scope chain.
+                  return this.scopeChain.resolveReference(node.name);
               } else {
                   return field;
               }
@@ -1106,18 +1110,47 @@
         return this.runtime.callFunction(node.name, resolvedArgs);
       },
 
-      visitExpressionReference: function(node) {
+      visitExpressionReference: function(node, value) {
         var refNode = node.children[0];
         // Tag the node with a specific attribute so the type
         // checker verify the type.
         refNode.jmespathType = "Expref";
+        refNode.context = value;
         return refNode;
       }
   };
 
-  function Runtime(interpreter, options) {
-    this.options = options || {};
+  function ScopeChain() {
+      this.scopes = [];
+  }
+
+  ScopeChain.prototype = {
+      pushScope: function(scope) {
+          this.scopes.push(scope);
+      },
+
+      popScope: function() {
+          this.scopes.pop();
+      },
+
+      resolveReference: function(name) {
+          var currentScope;
+          var currentValue;
+          for (var i = this.scopes.length - 1; i >= 0; i--) {
+              currentScope = this.scopes[i];
+              currentValue = currentScope[name];
+              if (currentValue !== undefined) {
+                  return currentValue;
+              }
+          }
+          return null;
+      }
+  };
+
+  function Runtime(interpreter, scopeChain, options) {
     this.interpreter = interpreter;
+    this.scopeChain = scopeChain;
+    this.options = options || {};
     this.functionTable = {
         // name: [function, <signature>]
         // The <signature> can be:
@@ -1145,6 +1178,9 @@
         length: {
             func: this.functionLength,
             signature: [{types: ["string", "array", "object"]}]},
+        let: {
+            func: this.functionLet,
+            signature: [{types: ["object"]}, {"types": ["expref"]}]},
         max: {
             func: this.functionMax,
             signature: [{types: ["array-number", "array-string"]}]},
@@ -1580,6 +1616,18 @@
       return minRecord;
     },
 
+    functionLet: function(resolvedArgs) {
+      var scope = resolvedArgs[0];
+      var expref = resolvedArgs[1];
+      var interpreter = this.interpreter;
+      this.scopeChain.pushScope(scope);
+      try {
+          return interpreter.visit(expref, expref.context);
+      } finally {
+          this.scopeChain.popScope();
+      }
+    },
+
     createKeyFunction: function(exprefNode, allowedTypes) {
       var that = this;
       var interpreter = this.interpreter;
@@ -1613,7 +1661,7 @@
       // This needs to be improved.  Both the interpreter and runtime depend on
       // each other.  The runtime needs the interpreter to support exprefs.
       // There's likely a clean way to avoid the cyclic dependency.
-      var runtime = new Runtime(undefined, options);
+      var runtime = new Runtime(undefined, undefined, options);
       var interpreter = new TreeInterpreter(runtime);
       runtime.interpreter = interpreter;
       var node = parser.parse(expression);
