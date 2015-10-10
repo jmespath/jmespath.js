@@ -876,6 +876,10 @@
                   return field;
               }
           } else {
+            value = this.scopeChain.resolveReference(node.name)
+            if(value != null && typeof value != 'undefined') {
+              return value;
+            }
             return null;
           }
       },
