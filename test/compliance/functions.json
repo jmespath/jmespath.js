@@ -808,6 +808,11 @@
       "result": ["2", "1"]
     },
     {
+      "description": "Basic let from scope",
+      "expression": "a.mylist[*].l1[] | let({level1: `false`}, &[] | [*].{l1: @, l2: level1, l3: level2})",
+      "result": [{"l1":"1","l2":false,"l3":null},{"l1":"8","l2":false,"l3":null},{"l1":"8","l2":false,"l3":null}]
+    },
+    {
       "description": "Current object has precedence",
       "expression": "let({level1: `other`}, &level1)",
       "result": "1"
