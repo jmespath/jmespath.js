@@ -242,6 +242,7 @@
                   }
               } else {
                   var error = new Error("Unknown character:" + stream[this.current]);
+                  error.lineNumber = this.current;
                   error.name = "LexerError";
                   throw error;
               }
@@ -444,8 +445,9 @@
           if (this.lookahead(0) !== "EOF") {
               var t = this.lookaheadToken(0);
               var error = new Error(
-                  "Unexpected token type: " + t.type + ", value: " + t.value);
+                  "Unexpected token type: " + t.type + ", value: " + t.value + ", lineNumber: " + t.start);
               error.name = "ParserError";
+              error.lineNumber = t.start;
               throw error;
           }
           return ast;
@@ -494,7 +496,8 @@
               this.advance();
           } else {
               var t = this.lookaheadToken(0);
-              var error = new Error("Expected " + tokenType + ", got: " + t.type);
+              var error = new Error("Expected " + tokenType + ", got: " + t.type + " lineNumber: " + t.start);
+              error.lineNumber = t.start;
               error.name = "ParserError";
               throw error;
           }
@@ -503,7 +506,9 @@
       errorToken: function(token) {
           var error = new Error("Invalid token (" +
                                 token.type + "): \"" +
-                                token.value + "\"");
+                                token.value + ", lineNumber: \"" +
+                                token.start + "\"");
+          error.lineNumber = token.start;
           error.name = "ParserError";
           throw error;
       },
@@ -524,7 +529,9 @@
       nudQuotedIdentifier: function(token) {
           var node = {type: "Field", name: token.value};
           if (this.lookahead(0) === "Lparen") {
-              throw new Error("Quoted identifier not allowed for function names.");
+            var error = new Error("Quoted identifier not allowed for function names.")
+            error.lineNumber = token.start;
+              throw error;
           } else {
               return node;
           }
@@ -616,6 +623,7 @@
                   var t = this.lookahead(0);
                   var error = new Error("Syntax error, unexpected token: " +
                                         t.value + "(" + t.type + ")");
+                  error.lineNumber = t.start;
                   error.name = "Parsererror";
                   throw error;
               }
@@ -767,6 +775,7 @@
               var t = this.lookaheadToken(0);
               var error = new Error("Sytanx error, unexpected token: " +
                                     t.value + "(" + t.type + ")");
+              error.lineNumber = t.start;
               error.name = "ParserError";
               throw error;
           }
