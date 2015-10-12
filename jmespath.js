@@ -529,7 +529,7 @@
       nudQuotedIdentifier: function(token) {
           var node = {type: "Field", name: token.value};
           if (this.lookahead(0) === "Lparen") {
-            var error = new Error("Quoted identifier not allowed for function names.")
+            var error = new Error("Quoted identifier not allowed for function names.");
             error.lineNumber = token.start;
               throw error;
           } else {
@@ -885,8 +885,8 @@
                   return field;
               }
           } else {
-            value = this.scopeChain.resolveReference(node.name)
-            if(value != null && typeof value != 'undefined') {
+            value = this.scopeChain.resolveReference(node.name);
+            if(value !== null && typeof value !== 'undefined') {
               return value;
             }
             return null;
