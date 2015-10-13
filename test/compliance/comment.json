@@ -1,0 +1,30 @@
+[
+    {
+        "given": {
+            "foo": [{"name": "a"}, {"name": "b"}],
+            "bar": {"baz": "qux"}
+        },
+        "cases": [
+            {
+                "expression": "foo[].name#@",
+                "result": [ "a", "b" ]
+            },
+            {
+                "expression": "#@ \n@.bar.baz",
+                "result": "qux"
+            },
+            {
+                "expression": "foo[].{\nname: name #john: name\n}",
+                "result": [ { "name": "a" }, { "name": "b" } ]
+            },
+            {
+                "expression": "foo[].{\n\"#name\": name #john: name\n}",
+                "result": [ { "#name": "a" }, { "#name": "b" } ]
+            },
+            {
+                "expression": "foo[].name#",
+                "result": [ "a", "b" ]
+            }
+        ]
+    }
+]

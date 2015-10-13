@@ -240,6 +240,8 @@
                   } else {
                       tokens.push({type: "Pipe", value: "|", start: start});
                   }
+              } else if(stream[this.current] === "#") {
+                this.consumeComment(stream);
               } else {
                   var error = new Error("Unknown character:" + stream[this.current]);
                   error.lineNumber = this.current;
@@ -380,6 +382,18 @@
           // +1 gets us to the ending "`", +1 to move on to the next char.
           this.current++;
           return literal;
+      },
+
+      consumeComment: function(stream) {
+          var start = this.current;
+          var maxLength = stream.length;
+          while(stream[this.current] !== "\n" && this.current < maxLength) {
+              this.current++;
+          }
+          var commentString = stream.slice(start, this.current).trimLeft();
+          // +1 gets us to the ending "\n", +1 to move on to the next char.
+          this.current++;
+          return commentString;
       },
 
       looksLikeJSON: function(literalString) {
