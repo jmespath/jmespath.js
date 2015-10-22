@@ -337,6 +337,8 @@
               if (stream[this.current] === "=") {
                   this.current++;
                   return {type: "NE", value: "!=", start: start};
+              } else {
+                return {type: "Not", value: "!", start: start};
               }
           } else if (startingChar === "<") {
               if (stream[this.current] === "=") {
@@ -433,6 +435,7 @@
           "GTE": 2,
           "LTE": 2,
           "NE": 2,
+          "Not": 5,
           "Or": 5,
           "And": 5,
           "Flatten": 6,
@@ -539,13 +542,18 @@
           }
       },
 
+      nudNot: function() {
+        var right = this.expression(this.bindingPower.Not);
+        return {type: "NotExpression", children: [right]};
+      },
+
       ledOr: function(left) {
         var right = this.expression(this.bindingPower.Or);
         return {type: "OrExpression", children: [left, right]};
       },
 
       ledAnd: function(left) {
-        var right = this.expression(this.bindingPower.Or);
+        var right = this.expression(this.bindingPower.And);
         return {type: "AndExpression", children: [left, right]};
       },
 
@@ -1103,6 +1111,11 @@
         var first = this.visit(node.children[0], value);
         var second = this.visit(node.children[1], value);
         return isFalse(first) === false && isFalse(second) === false;
+      },
+
+      visitNotExpression: function(node, value) {
+        var first = this.visit(node.children[0], value);
+        return isFalse(first);
       },
 
       visitLiteral: function(node) {
