@@ -119,10 +119,10 @@
   }
 
 
-  // The "[", "<", ">" tokens
+  // The "&", "[", "<", ">" tokens
   // are not in basicToken because
   // there are two token variants
-  // ("[?", "<=", ">=").  This is specially handled
+  // ("&&", "[?", "<=", ">=").  This is specially handled
   // below.
 
   var basicTokens = {
@@ -135,8 +135,7 @@
     "]": "Rbracket",
     "(": "Lparen",
     ")": "Rparen",
-    "@": "Current",
-    "&": "Expref"
+    "@": "Current"
   };
 
   var identifierStart = {
@@ -231,6 +230,15 @@
               } else if (skipChars[stream[this.current]] !== undefined) {
                   // Ignore whitespace.
                   this.current++;
+              } else if (stream[this.current] === "&") {
+                  start = this.current;
+                  this.current++;
+                  if (stream[this.current] === "&") {
+                      this.current++;
+                      tokens.push({type: "And", value: "&&", start: start});
+                  } else {
+                      tokens.push({type: "Expref", value: "&", start: start});
+                  }
               } else if (stream[this.current] === "|") {
                   start = this.current;
                   this.current++;
@@ -426,6 +434,7 @@
           "LTE": 2,
           "NE": 2,
           "Or": 5,
+          "And": 5,
           "Flatten": 6,
           "Star": 20,
           "Filter": 20,
@@ -533,6 +542,11 @@
       ledOr: function(left) {
         var right = this.expression(this.bindingPower.Or);
         return {type: "OrExpression", children: [left, right]};
+      },
+
+      ledAnd: function(left) {
+        var right = this.expression(this.bindingPower.Or);
+        return {type: "AndExpression", children: [left, right]};
       },
 
       ledPipe: function(left) {
@@ -1083,6 +1097,12 @@
             matched = this.visit(node.children[1], value);
         }
         return matched;
+      },
+
+      visitAndExpression: function(node, value) {
+        var first = this.visit(node.children[0], value);
+        var second = this.visit(node.children[1], value);
+        return isFalse(first) === false && isFalse(second) === false;
       },
 
       visitLiteral: function(node) {
