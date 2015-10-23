@@ -119,10 +119,10 @@
   }
 
 
-  // The "[", "<", ">" tokens
+  // The "&", "[", "<", ">" tokens
   // are not in basicToken because
   // there are two token variants
-  // ("[?", "<=", ">=").  This is specially handled
+  // ("&&", "[?", "<=", ">=").  This is specially handled
   // below.
 
   var basicTokens = {
@@ -135,8 +135,7 @@
     "]": "Rbracket",
     "(": "Lparen",
     ")": "Rparen",
-    "@": "Current",
-    "&": "Expref"
+    "@": "Current"
   };
 
   var identifierStart = {
@@ -231,6 +230,15 @@
               } else if (skipChars[stream[this.current]] !== undefined) {
                   // Ignore whitespace.
                   this.current++;
+              } else if (stream[this.current] === "&") {
+                  start = this.current;
+                  this.current++;
+                  if (stream[this.current] === "&") {
+                      this.current++;
+                      tokens.push({type: "And", value: "&&", start: start});
+                  } else {
+                      tokens.push({type: "Expref", value: "&", start: start});
+                  }
               } else if (stream[this.current] === "|") {
                   start = this.current;
                   this.current++;
@@ -329,6 +337,8 @@
               if (stream[this.current] === "=") {
                   this.current++;
                   return {type: "NE", value: "!=", start: start};
+              } else {
+                return {type: "Not", value: "!", start: start};
               }
           } else if (startingChar === "<") {
               if (stream[this.current] === "=") {
@@ -419,17 +429,19 @@
           "Current": 0,
           "Expref": 0,
           "Pipe": 1,
-          "EQ": 2,
-          "GT": 2,
-          "LT": 2,
-          "GTE": 2,
-          "LTE": 2,
-          "NE": 2,
-          "Or": 5,
-          "Flatten": 6,
+          "Or": 2,
+          "And": 3,
+          "EQ": 5,
+          "GT": 5,
+          "LT": 5,
+          "GTE": 5,
+          "LTE": 5,
+          "NE": 5,
+          "Flatten": 9,
           "Star": 20,
           "Filter": 20,
           "Dot": 40,
+          "Not": 45,
           "Lbrace": 50,
           "Lbracket": 55,
           "Lparen": 60
@@ -530,9 +542,19 @@
           }
       },
 
+      nudNot: function() {
+        var right = this.expression(this.bindingPower.Not);
+        return {type: "NotExpression", children: [right]};
+      },
+
       ledOr: function(left) {
         var right = this.expression(this.bindingPower.Or);
         return {type: "OrExpression", children: [left, right]};
+      },
+
+      ledAnd: function(left) {
+        var right = this.expression(this.bindingPower.And);
+        return {type: "AndExpression", children: [left, right]};
       },
 
       ledPipe: function(left) {
@@ -715,6 +737,22 @@
           var leftNode = {type: "Flatten", children: [left]};
           var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
           return {type: "Projection", children: [leftNode, rightNode]};
+      },
+
+      nudLparen: function() {
+        var args = [];
+        var expression;
+        while (this.lookahead(0) !== "Rparen") {
+          if (this.lookahead(0) === "Current") {
+            expression = {type: "Current"};
+            this.advance();
+          } else {
+            expression = this.expression(0);
+          }
+          args.push(expression);
+        }
+        this.match("Rparen");
+        return args[0];
       },
 
       ledLparen: function(left) {
@@ -1083,6 +1121,20 @@
             matched = this.visit(node.children[1], value);
         }
         return matched;
+      },
+
+      visitAndExpression: function(node, value) {
+        var first = this.visit(node.children[0], value);
+
+        if (isFalse(first) === true) {
+          return first;
+        }
+        return this.visit(node.children[1], value);
+      },
+
+      visitNotExpression: function(node, value) {
+        var first = this.visit(node.children[0], value);
+        return isFalse(first);
       },
 
       visitLiteral: function(node) {
