@@ -766,6 +766,9 @@
           } else {
             expression = this.expression(0);
           }
+          if (this.lookahead(0) === "Comma") {
+            this.match("Comma");
+          }
           args.push(expression);
         }
         this.match("Rparen");
