@@ -429,19 +429,19 @@
           "Current": 0,
           "Expref": 0,
           "Pipe": 1,
-          "EQ": 2,
-          "GT": 2,
-          "LT": 2,
-          "GTE": 2,
-          "LTE": 2,
-          "NE": 2,
-          "Not": 5,
-          "Or": 5,
-          "And": 5,
-          "Flatten": 6,
+          "Or": 2,
+          "And": 3,
+          "EQ": 5,
+          "GT": 5,
+          "LT": 5,
+          "GTE": 5,
+          "LTE": 5,
+          "NE": 5,
+          "Flatten": 9,
           "Star": 20,
           "Filter": 20,
           "Dot": 40,
+          "Not": 45,
           "Lbrace": 50,
           "Lbracket": 55,
           "Lparen": 60
@@ -739,6 +739,22 @@
           return {type: "Projection", children: [leftNode, rightNode]};
       },
 
+      nudLparen: function() {
+        var args = [];
+        var expression;
+        while (this.lookahead(0) !== "Rparen") {
+          if (this.lookahead(0) === "Current") {
+            expression = {type: "Current"};
+            this.advance();
+          } else {
+            expression = this.expression(0);
+          }
+          args.push(expression);
+        }
+        this.match("Rparen");
+        return args[0];
+      },
+
       ledLparen: function(left) {
         var name = left.name;
         var args = [];
@@ -749,9 +765,6 @@
             this.advance();
           } else {
             expression = this.expression(0);
-          }
-          if (this.lookahead(0) === "Comma") {
-            this.match("Comma");
           }
           args.push(expression);
         }
@@ -1109,8 +1122,11 @@
 
       visitAndExpression: function(node, value) {
         var first = this.visit(node.children[0], value);
-        var second = this.visit(node.children[1], value);
-        return isFalse(first) === false && isFalse(second) === false;
+
+        if (isFalse(first) === true) {
+          return first;
+        }
+        return this.visit(node.children[1], value);
       },
 
       visitNotExpression: function(node, value) {
