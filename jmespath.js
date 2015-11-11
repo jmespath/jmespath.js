@@ -301,7 +301,8 @@
               this.current = current;
           }
           this.current++;
-          return stream.slice(start + 1, this.current - 1);
+          var literal = stream.slice(start + 1, this.current - 1);
+          return literal.replace("\\'", "'");
       },
 
       consumeNumber: function(stream) {
@@ -439,7 +440,7 @@
           "NE": 5,
           "Flatten": 9,
           "Star": 20,
-          "Filter": 20,
+          "Filter": 21,
           "Dot": 40,
           "Not": 45,
           "Lbrace": 50,
@@ -1028,7 +1029,7 @@
         var matched, current;
         for (var i = 0; i < base.length; i++) {
           matched = this.visit(node.children[2], base[i]);
-          if (matched === true) {
+          if (!isFalse(matched)) {
             filtered.push(base[i]);
           }
         }
