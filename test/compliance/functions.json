@@ -68,7 +68,7 @@
       "error": "invalid-type"
     },
     {
-      "expression": "avg(`abc`)",
+      "expression": "avg('abc')",
       "error": "invalid-type"
     },
     {
@@ -100,23 +100,23 @@
       "result": -1
     },
     {
-      "expression": "ceil(`string`)",
+      "expression": "ceil('string')",
       "error": "invalid-type"
     },
     {
-      "expression": "contains(`abc`, `a`)",
+      "expression": "contains('abc', 'a')",
       "result": true
     },
     {
-      "expression": "contains(`abc`, `d`)",
+      "expression": "contains('abc', 'd')",
       "result": false
     },
     {
-      "expression": "contains(`false`, `d`)",
+      "expression": "contains(`false`, 'd')",
       "error": "invalid-type"
     },
     {
-      "expression": "contains(strings, `a`)",
+      "expression": "contains(strings, 'a')",
       "result": true
     },
     {
@@ -128,23 +128,23 @@
       "result": false
     },
     {
-      "expression": "ends_with(str, `r`)",
+      "expression": "ends_with(str, 'r')",
       "result": true
     },
     {
-      "expression": "ends_with(str, `tr`)",
+      "expression": "ends_with(str, 'tr')",
       "result": true
     },
     {
-      "expression": "ends_with(str, `Str`)",
+      "expression": "ends_with(str, 'Str')",
       "result": true
     },
     {
-      "expression": "ends_with(str, `SStr`)",
+      "expression": "ends_with(str, 'SStr')",
       "result": false
     },
     {
-      "expression": "ends_with(str, `foo`)",
+      "expression": "ends_with(str, 'foo')",
       "result": false
     },
     {
@@ -156,7 +156,7 @@
       "result": 1
     },
     {
-      "expression": "floor(`string`)",
+      "expression": "floor('string')",
       "error": "invalid-type"
     },
     {
@@ -172,11 +172,15 @@
       "error": "invalid-type"
     },
     {
-      "expression": "length(`abc`)",
+      "expression": "length('abc')",
       "result": 3
     },
     {
-      "expression": "length(`\"\"`)",
+      "expression": "length('✓foo')",
+      "result": 4
+    },
+    {
+      "expression": "length('')",
       "result": 0
     },
     {
@@ -288,7 +292,7 @@
       "result": "a"
     },
     {
-      "expression": "type(`abc`)",
+      "expression": "type('abc')",
       "result": "string"
     },
     {
@@ -324,8 +328,8 @@
       "result": "object"
     },
     {
-      "expression": "keys(objects)",
-      "result": ["foo", "bar"]
+      "expression": "sort(keys(objects))",
+      "result": ["bar", "foo"]
     },
     {
       "expression": "keys(foo)",
@@ -340,7 +344,7 @@
       "error": "invalid-type"
     },
     {
-      "expression": "values(objects)",
+      "expression": "sort(values(objects))",
       "result": ["bar", "baz"]
     },
     {
@@ -352,27 +356,27 @@
       "error": "invalid-type"
     },
     {
-      "expression": "join(`\", \"`, strings)",
+      "expression": "join(', ', strings)",
       "result": "a, b, c"
     },
     {
-      "expression": "join(`, `, strings)",
+      "expression": "join(', ', strings)",
       "result": "a, b, c"
     },
     {
-      "expression": "join(`,`, `[\"a\", \"b\"]`)",
+      "expression": "join(',', `[\"a\", \"b\"]`)",
       "result": "a,b"
     },
     {
-      "expression": "join(`,`, `[\"a\", 0]`)",
+      "expression": "join(',', `[\"a\", 0]`)",
       "error": "invalid-type"
     },
     {
-      "expression": "join(`, `, str)",
+      "expression": "join(', ', str)",
       "error": "invalid-type"
     },
     {
-      "expression": "join(`|`, strings)",
+      "expression": "join('|', strings)",
       "result": "a|b|c"
     },
     {
@@ -380,15 +384,15 @@
       "error": "invalid-type"
     },
     {
-      "expression": "join(`|`, decimals)",
+      "expression": "join('|', decimals)",
       "error": "invalid-type"
     },
     {
-      "expression": "join(`|`, decimals[].to_string(@))",
+      "expression": "join('|', decimals[].to_string(@))",
       "result": "1.01|1.2|-1.5"
     },
     {
-      "expression": "join(`|`, empty_list)",
+      "expression": "join('|', empty_list)",
       "result": ""
     },
     {
@@ -404,27 +408,27 @@
       "result": []
     },
     {
-      "expression": "reverse(``)",
+      "expression": "reverse('')",
       "result": ""
     },
     {
-      "expression": "reverse(`hello world`)",
+      "expression": "reverse('hello world')",
       "result": "dlrow olleh"
     },
     {
-      "expression": "starts_with(str, `S`)",
+      "expression": "starts_with(str, 'S')",
       "result": true
     },
     {
-      "expression": "starts_with(str, `St`)",
+      "expression": "starts_with(str, 'St')",
       "result": true
     },
     {
-      "expression": "starts_with(str, `Str`)",
+      "expression": "starts_with(str, 'Str')",
       "result": true
     },
     {
-      "expression": "starts_with(str, `String`)",
+      "expression": "starts_with(str, 'String')",
       "result": false
     },
     {
@@ -452,7 +456,7 @@
       "result": 0
     },
     {
-      "expression": "to_array(`foo`)",
+      "expression": "to_array('foo')",
       "result": ["foo"]
     },
     {
@@ -472,7 +476,7 @@
       "result": [false]
     },
     {
-      "expression": "to_string(`foo`)",
+      "expression": "to_string('foo')",
       "result": "foo"
     },
     {
@@ -484,19 +488,19 @@
       "result": "[0,1]"
     },
     {
-      "expression": "to_number(`\"1.0\"`)",
+      "expression": "to_number('1.0')",
       "result": 1.0
     },
     {
-      "expression": "to_number(`\"1.1\"`)",
+      "expression": "to_number('1.1')",
       "result": 1.1
     },
     {
-      "expression": "to_number(`\"4\"`)",
+      "expression": "to_number('4')",
       "result": 4
     },
     {
-      "expression": "to_number(`\"notanumber\"`)",
+      "expression": "to_number('notanumber')",
       "result": null
     },
     {
@@ -611,6 +615,16 @@
     {
       "description": "sort by field expression",
       "expression": "sort_by(people, &age)",
+      "result": [
+         {"age": 10, "age_str": "10", "bool": true, "name": 3},
+         {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
+         {"age": 30, "age_str": "30", "bool": true, "name": "c"},
+         {"age": 40, "age_str": "40", "bool": false, "name": "b", "extra": "bar"},
+         {"age": 50, "age_str": "50", "bool": false, "name": "d"}
+      ]
+    },
+    {
+      "expression": "sort_by(people, &age_str)",
       "result": [
          {"age": 10, "age_str": "10", "bool": true, "name": 3},
          {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
@@ -736,4 +750,76 @@
       ]
     }
   ]
-}]
+}, {
+  "given":
+  {
+    "people": [
+         {"a": 10, "b": 1, "c": "z"},
+         {"a": 10, "b": 2, "c": null},
+         {"a": 10, "b": 3},
+         {"a": 10, "b": 4, "c": "z"},
+         {"a": 10, "b": 5, "c": null},
+         {"a": 10, "b": 6},
+         {"a": 10, "b": 7, "c": "z"},
+         {"a": 10, "b": 8, "c": null},
+         {"a": 10, "b": 9}
+    ],
+    "empty": []
+  },
+  "cases": [
+    {
+      "expression": "map(&a, people)",
+      "result": [10, 10, 10, 10, 10, 10, 10, 10, 10]
+    },
+    {
+      "expression": "map(&c, people)",
+      "result": ["z", null, null, "z", null, null, "z", null, null]
+    },
+    {
+      "expression": "map(&a, badkey)",
+      "error": "invalid-type"
+    },
+    {
+      "expression": "map(&foo, empty)",
+      "result": []
+    }
+  ]
+}, {
+  "given": {
+    "array": [
+      {
+          "foo": {"bar": "yes1"}
+      },
+      {
+          "foo": {"bar": "yes2"}
+      },
+      {
+          "foo1": {"bar": "no"}
+      }
+  ]},
+  "cases": [
+    {
+      "expression": "map(&foo.bar, array)",
+      "result": ["yes1", "yes2", null]
+    },
+    {
+      "expression": "map(&foo1.bar, array)",
+      "result": [null, null, "no"]
+    },
+    {
+      "expression": "map(&foo.bar.baz, array)",
+      "result": [null, null, null]
+    }
+  ]
+}, {
+  "given": {
+    "array": [[1, 2, 3, [4]], [5, 6, 7, [8, 9]]]
+  },
+  "cases": [
+    {
+      "expression": "map(&[], array)",
+      "result": [[1, 2, 3, 4], [5, 6, 7, 8, 9]]
+    }
+  ]
+}
+]

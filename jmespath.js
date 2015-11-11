@@ -119,10 +119,10 @@
   }
 
 
-  // The "[", "<", ">" tokens
+  // The "&", "[", "<", ">" tokens
   // are not in basicToken because
   // there are two token variants
-  // ("[?", "<=", ">=").  This is specially handled
+  // ("&&", "[?", "<=", ">=").  This is specially handled
   // below.
 
   var basicTokens = {
@@ -135,8 +135,7 @@
     "]": "Rbracket",
     "(": "Lparen",
     ")": "Rparen",
-    "@": "Current",
-    "&": "Expref"
+    "@": "Current"
   };
 
   var identifierStart = {
@@ -214,6 +213,12 @@
                   tokens.push({type: "QuotedIdentifier",
                                value: identifier,
                                start: start});
+              } else if (stream[this.current] === "'") {
+                  start = this.current;
+                  identifier = this.consumeRawStringLiteral(stream);
+                  tokens.push({type: "Literal",
+                               value: identifier,
+                               start: start});
               } else if (stream[this.current] === "`") {
                   start = this.current;
                   var literal = this.consumeLiteral(stream);
@@ -225,6 +230,15 @@
               } else if (skipChars[stream[this.current]] !== undefined) {
                   // Ignore whitespace.
                   this.current++;
+              } else if (stream[this.current] === "&") {
+                  start = this.current;
+                  this.current++;
+                  if (stream[this.current] === "&") {
+                      this.current++;
+                      tokens.push({type: "And", value: "&&", start: start});
+                  } else {
+                      tokens.push({type: "Expref", value: "&", start: start});
+                  }
               } else if (stream[this.current] === "|") {
                   start = this.current;
                   this.current++;
@@ -271,6 +285,26 @@
           return JSON.parse(stream.slice(start, this.current));
       },
 
+      consumeRawStringLiteral: function(stream) {
+          var start = this.current;
+          this.current++;
+          var maxLength = stream.length;
+          while (stream[this.current] !== "'" && this.current < maxLength) {
+              // You can escape a single quote and you can escape an escape.
+              var current = this.current;
+              if (stream[current] === "\\" && (stream[current + 1] === "\\" ||
+                                               stream[current + 1] === "'")) {
+                  current += 2;
+              } else {
+                  current++;
+              }
+              this.current = current;
+          }
+          this.current++;
+          var literal = stream.slice(start + 1, this.current - 1);
+          return literal.replace("\\'", "'");
+      },
+
       consumeNumber: function(stream) {
           var start = this.current;
           this.current++;
@@ -304,6 +338,8 @@
               if (stream[this.current] === "=") {
                   this.current++;
                   return {type: "NE", value: "!=", start: start};
+              } else {
+                return {type: "Not", value: "!", start: start};
               }
           } else if (startingChar === "<") {
               if (stream[this.current] === "=") {
@@ -394,17 +430,19 @@
           "Current": 0,
           "Expref": 0,
           "Pipe": 1,
-          "EQ": 2,
-          "GT": 2,
-          "LT": 2,
-          "GTE": 2,
-          "LTE": 2,
-          "NE": 2,
-          "Or": 5,
-          "Flatten": 6,
+          "Or": 2,
+          "And": 3,
+          "EQ": 5,
+          "GT": 5,
+          "LT": 5,
+          "GTE": 5,
+          "LTE": 5,
+          "NE": 5,
+          "Flatten": 9,
           "Star": 20,
-          "Filter": 20,
+          "Filter": 21,
           "Dot": 40,
+          "Not": 45,
           "Lbrace": 50,
           "Lbracket": 55,
           "Lparen": 60
@@ -505,9 +543,19 @@
           }
       },
 
+      nudNot: function() {
+        var right = this.expression(this.bindingPower.Not);
+        return {type: "NotExpression", children: [right]};
+      },
+
       ledOr: function(left) {
         var right = this.expression(this.bindingPower.Or);
         return {type: "OrExpression", children: [left, right]};
+      },
+
+      ledAnd: function(left) {
+        var right = this.expression(this.bindingPower.And);
+        return {type: "AndExpression", children: [left, right]};
       },
 
       ledPipe: function(left) {
@@ -690,6 +738,22 @@
           var leftNode = {type: "Flatten", children: [left]};
           var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
           return {type: "Projection", children: [leftNode, rightNode]};
+      },
+
+      nudLparen: function() {
+        var args = [];
+        var expression;
+        while (this.lookahead(0) !== "Rparen") {
+          if (this.lookahead(0) === "Current") {
+            expression = {type: "Current"};
+            this.advance();
+          } else {
+            expression = this.expression(0);
+          }
+          args.push(expression);
+        }
+        this.match("Rparen");
+        return args[0];
       },
 
       ledLparen: function(left) {
@@ -965,7 +1029,7 @@
         var matched, current;
         for (var i = 0; i < base.length; i++) {
           matched = this.visit(node.children[2], base[i]);
-          if (matched === true) {
+          if (!isFalse(matched)) {
             filtered.push(base[i]);
           }
         }
@@ -1060,6 +1124,20 @@
         return matched;
       },
 
+      visitAndExpression: function(node, value) {
+        var first = this.visit(node.children[0], value);
+
+        if (isFalse(first) === true) {
+          return first;
+        }
+        return this.visit(node.children[1], value);
+      },
+
+      visitNotExpression: function(node, value) {
+        var first = this.visit(node.children[0], value);
+        return isFalse(first);
+      },
+
       visitLiteral: function(node) {
           return node.value;
       },
@@ -1119,6 +1197,9 @@
         length: {
             func: this.functionLength,
             signature: [{types: ["string", "array", "object"]}]},
+        map: {
+            func: this.functionMap,
+            signature: [{types: ["expref"]}, {types: ["array"]}]},
         max: {
             func: this.functionMax,
             signature: [{types: ["array-number", "array-string"]}]},
@@ -1332,6 +1413,17 @@
          // of an object without O(n) iteration through the object.
          return Object.keys(resolvedArgs[0]).length;
        }
+    },
+
+    functionMap: function(resolvedArgs) {
+      var mapped = [];
+      var interpreter = this.interpreter;
+      var exprefNode = resolvedArgs[0];
+      var elements = resolvedArgs[1];
+      for (var i = 0; i < elements.length; i++) {
+          mapped.push(interpreter.visit(exprefNode, elements[i]));
+      }
+      return mapped;
     },
 
     functionMerge: function(resolvedArgs) {
