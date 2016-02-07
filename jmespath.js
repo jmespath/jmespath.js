@@ -3,7 +3,7 @@
 
   function isArray(obj) {
     if (obj !== null) {
-      return toString.call(obj) === "[object Array]";
+      return Object.prototype.toString.call(obj) === "[object Array]";
     } else {
       return false;
     }
@@ -11,7 +11,7 @@
 
   function isObject(obj) {
     if (obj !== null) {
-      return toString.call(obj) === "[object Object]";
+      return Object.prototype.toString.call(obj) === "[object Object]";
     } else {
       return false;
     }
@@ -24,8 +24,8 @@
     }
 
     // Check if they are the same type.
-    var firstType = toString.call(first);
-    if (firstType !== toString.call(second)) {
+    var firstType = Object.prototype.toString.call(first);
+    if (firstType !== Object.prototype.toString.call(second)) {
       return false;
     }
     // We know that first and second have the same type so we can just check the
@@ -1332,7 +1332,7 @@
         }
     },
     getTypeName: function(obj) {
-        switch (toString.call(obj)) {
+        switch (Object.prototype.toString.call(obj)) {
             case "[object String]":
               return "string";
             case "[object Number]":
