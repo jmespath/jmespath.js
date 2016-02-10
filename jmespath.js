@@ -477,12 +477,8 @@
           var left = this.nud(leftToken);
           var currentToken = this.lookahead(0);
           while (rbp < this.bindingPower[currentToken]) {
-              var ledMethod = this["led" + currentToken];
-              if (ledMethod === undefined) {
-                  this.errorToken(this.lookaheadToken(0));
-              }
               this.advance();
-              left = ledMethod.call(this, left);
+              left = this.led(currentToken, left);
               currentToken = this.lookahead(0);
           }
           return left;
@@ -533,7 +529,7 @@
             return {type: "ValueProjection", children: [left, right]};
             break;
           case "Filter":
-            return this.ledFilter({type: "Identity"});
+            return this.led(token.type, {type: "Identity"});
             break;
           case "Lbrace":
             return this.parseMultiselectHash();
@@ -587,6 +583,95 @@
         }
       },
 
+      led: function(tokenName, left) {
+        switch(tokenName) {
+          case "Dot":
+            var rbp = this.bindingPower.Dot;
+            var right;
+            if (this.lookahead(0) !== "Star") {
+                right = this.parseDotRHS(rbp);
+                return {type: "Subexpression", children: [left, right]};
+            } else {
+                // Creating a projection.
+                this.advance();
+                right = this.parseProjectionRHS(rbp);
+                return {type: "ValueProjection", children: [left, right]};
+            }
+            break;
+          case "Pipe":
+            var right = this.expression(this.bindingPower.Pipe);
+            return {type: "Pipe", children: [left, right]};
+            break;
+          case "Or":
+            var right = this.expression(this.bindingPower.Or);
+            return {type: "OrExpression", children: [left, right]};
+            break;
+          case "And":
+            var right = this.expression(this.bindingPower.And);
+            return {type: "AndExpression", children: [left, right]};
+            break;
+          case "Lparen":
+            var name = left.name;
+            var args = [];
+            var expression, node;
+            while (this.lookahead(0) !== "Rparen") {
+              if (this.lookahead(0) === "Current") {
+                expression = {type: "Current"};
+                this.advance();
+              } else {
+                expression = this.expression(0);
+              }
+              if (this.lookahead(0) === "Comma") {
+                this.match("Comma");
+              }
+              args.push(expression);
+            }
+            this.match("Rparen");
+            node = {type: "Function", name: name, children: args};
+            return node;
+            break;
+          case "Filter":
+            var condition = this.expression(0);
+            var right;
+            this.match("Rbracket");
+            if (this.lookahead(0) === "Flatten") {
+              right = {type: "Identity"};
+            } else {
+              right = this.parseProjectionRHS(this.bindingPower.Filter);
+            }
+            return {type: "FilterProjection", children: [left, right, condition]};
+            break;
+          case "Flatten":
+            var leftNode = {type: "Flatten", children: [left]};
+            var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
+            return {type: "Projection", children: [leftNode, rightNode]};
+            break;
+          case "EQ":
+          case "NE":
+          case "GT":
+          case "GTE":
+          case "LT":
+          case "LTE":
+            return this.parseComparator(left, tokenName);
+            break
+          case "Lbracket":
+            var token = this.lookaheadToken(0);
+            var right;
+            if (token.type === "Number" || token.type === "Colon") {
+                right = this.parseIndexExpression();
+                return this.projectIfSlice(left, right);
+            } else {
+                this.match("Star");
+                this.match("Rbracket");
+                right = this.parseProjectionRHS(this.bindingPower.Star);
+                return {type: "Projection", children: [left, right]};
+            }
+            break;
+          default:
+            this.errorToken(this.lookaheadToken(0));
+        }
+      },
+
       match: function(tokenType) {
           if (this.lookahead(0) === tokenType) {
               this.advance();
@@ -606,20 +691,6 @@
           throw error;
       },
 
-      ledOr: function(left) {
-        var right = this.expression(this.bindingPower.Or);
-        return {type: "OrExpression", children: [left, right]};
-      },
-
-      ledAnd: function(left) {
-        var right = this.expression(this.bindingPower.And);
-        return {type: "AndExpression", children: [left, right]};
-      },
-
-      ledPipe: function(left) {
-          var right = this.expression(this.bindingPower.Pipe);
-          return {type: "Pipe", children: [left, right]};
-      },
 
       parseIndexExpression: function() {
           if (this.lookahead(0) === "Colon" || this.lookahead(1) === "Colon") {
@@ -675,100 +746,9 @@
           };
       },
 
-      ledDot: function(left) {
-          var rbp = this.bindingPower.Dot;
-          var right;
-          if (this.lookahead(0) !== "Star") {
-              right = this.parseDotRHS(rbp);
-              return {type: "Subexpression", children: [left, right]};
-          } else {
-              // Creating a projection.
-              this.advance();
-              right = this.parseProjectionRHS(rbp);
-              return {type: "ValueProjection", children: [left, right]};
-          }
-      },
-
-      ledFilter: function(left) {
-        var condition = this.expression(0);
-        var right;
-        this.match("Rbracket");
-        if (this.lookahead(0) === "Flatten") {
-          right = {type: "Identity"};
-        } else {
-          right = this.parseProjectionRHS(this.bindingPower.Filter);
-        }
-        return {type: "FilterProjection", children: [left, right, condition]};
-      },
-
-      ledEQ: function(left) {
-        return this.parseComparator(left, "EQ");
-      },
-
-      ledNE: function(left) {
-        return this.parseComparator(left, "NE");
-      },
-
-      ledGT: function(left) {
-        return this.parseComparator(left, "GT");
-      },
-
-      ledGTE: function(left) {
-        return this.parseComparator(left, "GTE");
-      },
-
-      ledLT: function(left) {
-        return this.parseComparator(left, "LT");
-      },
-
-      ledLTE: function(left) {
-        return this.parseComparator(left, "LTE");
-      },
-
       parseComparator: function(left, comparator) {
         var right = this.expression(this.bindingPower[comparator]);
         return {type: "Comparator", name: comparator, children: [left, right]};
-      },
-
-      ledLbracket: function(left) {
-          var token = this.lookaheadToken(0);
-          var right;
-          if (token.type === "Number" || token.type === "Colon") {
-              right = this.parseIndexExpression();
-              return this.projectIfSlice(left, right);
-          } else {
-              this.match("Star");
-              this.match("Rbracket");
-              right = this.parseProjectionRHS(this.bindingPower.Star);
-              return {type: "Projection", children: [left, right]};
-          }
-      },
-
-      ledFlatten: function(left) {
-          var leftNode = {type: "Flatten", children: [left]};
-          var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
-          return {type: "Projection", children: [leftNode, rightNode]};
-      },
-
-      ledLparen: function(left) {
-        var name = left.name;
-        var args = [];
-        var expression, node;
-        while (this.lookahead(0) !== "Rparen") {
-          if (this.lookahead(0) === "Current") {
-            expression = {type: "Current"};
-            this.advance();
-          } else {
-            expression = this.expression(0);
-          }
-          if (this.lookahead(0) === "Comma") {
-            this.match("Comma");
-          }
-          args.push(expression);
-        }
-        this.match("Rparen");
-        node = {type: "Function", name: name, children: args};
-        return node;
       },
 
       parseDotRHS: function(rbp) {
