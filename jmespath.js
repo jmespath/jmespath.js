@@ -474,9 +474,7 @@
       expression: function(rbp) {
           var leftToken = this.lookaheadToken(0);
           this.advance();
-          var name = "nud" + leftToken.type;
-          var nudMethod = this[name] || this.errorToken;
-          var left = nudMethod.call(this, leftToken);
+          var left = this.nud(leftToken);
           var currentToken = this.lookahead(0);
           while (rbp < this.bindingPower[currentToken]) {
               var ledMethod = this["led" + currentToken];
@@ -502,6 +500,93 @@
           this.index++;
       },
 
+      nud: function(token) {
+        switch (token.type) {
+          case "Literal":
+            return {type: "Literal", value: token.value};
+            break;
+          case "UnquotedIdentifier":
+            return {type: "Field", name: token.value};
+            break;
+          case "QuotedIdentifier":
+            var node = {type: "Field", name: token.value};
+            if (this.lookahead(0) === "Lparen") {
+                throw new Error("Quoted identifier not allowed for function names.");
+            } else {
+                return node;
+            }
+            break;
+          case "Not":
+            var right = this.expression(this.bindingPower.Not);
+            return {type: "NotExpression", children: [right]};
+            break;
+          case "Star":
+            var left = {type: "Identity"};
+            var right = null;
+            if (this.lookahead(0) === "Rbracket") {
+                // This can happen in a multiselect,
+                // [a, b, *]
+                right = {type: "Identity"};
+            } else {
+                right = this.parseProjectionRHS(this.bindingPower.Star);
+            }
+            return {type: "ValueProjection", children: [left, right]};
+            break;
+          case "Filter":
+            return this.ledFilter({type: "Identity"});
+            break;
+          case "Lbrace":
+            return this.parseMultiselectHash();
+            break;
+          case "Flatten":
+            var left = {type: "Flatten", children: [{type: "Identity"}]};
+            var right = this.parseProjectionRHS(this.bindingPower.Flatten);
+            return {type: "Projection", children: [left, right]};
+            break;
+          case "Lbracket":
+            var right;
+            if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
+                right = this.parseIndexExpression();
+                return this.projectIfSlice({type: "Identity"}, right);
+            } else if (this.lookahead(0) === "Star" &&
+                       this.lookahead(1) === "Rbracket") {
+                this.advance();
+                this.advance();
+                right = this.parseProjectionRHS(this.bindingPower.Star);
+                return {type: "Projection",
+                        children: [{type: "Identity"}, right]};
+            } else {
+                return this.parseMultiselectList();
+            }
+            break;
+          case "Current":
+            return {type: "Current"};
+            break;
+          case "Expref":
+            var expression = this.expression(this.bindingPower.Expref);
+            return {type: "ExpressionReference", children: [expression]};
+            break;
+          case "Lparen":
+            var args = [];
+            var expression;
+            while (this.lookahead(0) !== "Rparen") {
+              if (this.lookahead(0) === "Current") {
+                expression = {type: "Current"};
+                this.advance();
+              } else {
+                expression = this.expression(0);
+              }
+              args.push(expression);
+            }
+            this.match("Rparen");
+            return args[0];
+            break;
+          default:
+            this.errorToken(token);
+            break;
+        }
+      },
+
       match: function(tokenType) {
           if (this.lookahead(0) === tokenType) {
               this.advance();
@@ -521,33 +606,6 @@
           throw error;
       },
 
-      nudLiteral: function(token) {
-          return {type: "Literal", value: token.value};
-      },
-
-      nudUnquotedIdentifier: function(token) {
-          return {type: "Field", name: token.value};
-      },
-
-      nudExpref: function() {
-        var expression = this.expression(this.bindingPower.Expref);
-        return {type: "ExpressionReference", children: [expression]};
-      },
-
-      nudQuotedIdentifier: function(token) {
-          var node = {type: "Field", name: token.value};
-          if (this.lookahead(0) === "Lparen") {
-              throw new Error("Quoted identifier not allowed for function names.");
-          } else {
-              return node;
-          }
-      },
-
-      nudNot: function() {
-        var right = this.expression(this.bindingPower.Not);
-        return {type: "NotExpression", children: [right]};
-      },
-
       ledOr: function(left) {
         var right = this.expression(this.bindingPower.Or);
         return {type: "OrExpression", children: [left, right]};
@@ -561,40 +619,6 @@
       ledPipe: function(left) {
           var right = this.expression(this.bindingPower.Pipe);
           return {type: "Pipe", children: [left, right]};
-      },
-
-      nudStar: function() {
-          var left = {type: "Identity"};
-          var right = null;
-          if (this.lookahead(0) === "Rbracket") {
-              // This can happen in a multiselect,
-              // [a, b, *]
-              right = {type: "Identity"};
-          } else {
-              right = this.parseProjectionRHS(this.bindingPower.Star);
-          }
-          return {type: "ValueProjection", children: [left, right]};
-      },
-
-      nudCurrent: function() {
-          return {type: "Current"};
-      },
-
-      nudLbracket: function() {
-          var right;
-          if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
-              right = this.parseIndexExpression();
-              return this.projectIfSlice({type: "Identity"}, right);
-          } else if (this.lookahead(0) === "Star" &&
-                     this.lookahead(1) === "Rbracket") {
-              this.advance();
-              this.advance();
-              right = this.parseProjectionRHS(this.bindingPower.Star);
-              return {type: "Projection",
-                      children: [{type: "Identity"}, right]};
-          } else {
-              return this.parseMultiselectList();
-          }
       },
 
       parseIndexExpression: function() {
@@ -651,10 +675,6 @@
           };
       },
 
-      nudLbrace: function() {
-          return this.parseMultiselectHash();
-      },
-
       ledDot: function(left) {
           var rbp = this.bindingPower.Dot;
           var right;
@@ -667,10 +687,6 @@
               right = this.parseProjectionRHS(rbp);
               return {type: "ValueProjection", children: [left, right]};
           }
-      },
-
-      nudFilter: function() {
-        return this.ledFilter({type: "Identity"});
       },
 
       ledFilter: function(left) {
@@ -728,32 +744,10 @@
           }
       },
 
-      nudFlatten: function() {
-          var left = {type: "Flatten", children: [{type: "Identity"}]};
-          var right = this.parseProjectionRHS(this.bindingPower.Flatten);
-          return {type: "Projection", children: [left, right]};
-      },
-
       ledFlatten: function(left) {
           var leftNode = {type: "Flatten", children: [left]};
           var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
           return {type: "Projection", children: [leftNode, rightNode]};
-      },
-
-      nudLparen: function() {
-        var args = [];
-        var expression;
-        while (this.lookahead(0) !== "Rparen") {
-          if (this.lookahead(0) === "Current") {
-            expression = {type: "Current"};
-            this.advance();
-          } else {
-            expression = this.expression(0);
-          }
-          args.push(expression);
-        }
-        this.match("Rparen");
-        return args[0];
       },
 
       ledLparen: function(left) {
