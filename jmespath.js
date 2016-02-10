@@ -497,13 +497,14 @@
       },
 
       nud: function(token) {
+        var left;
+        var right;
+        var expression;
         switch (token.type) {
           case "Literal":
             return {type: "Literal", value: token.value};
-            break;
           case "UnquotedIdentifier":
             return {type: "Field", name: token.value};
-            break;
           case "QuotedIdentifier":
             var node = {type: "Field", name: token.value};
             if (this.lookahead(0) === "Lparen") {
@@ -513,12 +514,11 @@
             }
             break;
           case "Not":
-            var right = this.expression(this.bindingPower.Not);
+            right = this.expression(this.bindingPower.Not);
             return {type: "NotExpression", children: [right]};
-            break;
           case "Star":
-            var left = {type: "Identity"};
-            var right = null;
+            left = {type: "Identity"};
+            right = null;
             if (this.lookahead(0) === "Rbracket") {
                 // This can happen in a multiselect,
                 // [a, b, *]
@@ -527,20 +527,15 @@
                 right = this.parseProjectionRHS(this.bindingPower.Star);
             }
             return {type: "ValueProjection", children: [left, right]};
-            break;
           case "Filter":
             return this.led(token.type, {type: "Identity"});
-            break;
           case "Lbrace":
             return this.parseMultiselectHash();
-            break;
           case "Flatten":
-            var left = {type: "Flatten", children: [{type: "Identity"}]};
-            var right = this.parseProjectionRHS(this.bindingPower.Flatten);
+            left = {type: "Flatten", children: [{type: "Identity"}]};
+            right = this.parseProjectionRHS(this.bindingPower.Flatten);
             return {type: "Projection", children: [left, right]};
-            break;
           case "Lbracket":
-            var right;
             if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
                 right = this.parseIndexExpression();
                 return this.projectIfSlice({type: "Identity"}, right);
@@ -557,14 +552,11 @@
             break;
           case "Current":
             return {type: "Current"};
-            break;
           case "Expref":
-            var expression = this.expression(this.bindingPower.Expref);
+            expression = this.expression(this.bindingPower.Expref);
             return {type: "ExpressionReference", children: [expression]};
-            break;
           case "Lparen":
             var args = [];
-            var expression;
             while (this.lookahead(0) !== "Rparen") {
               if (this.lookahead(0) === "Current") {
                 expression = {type: "Current"};
@@ -576,18 +568,16 @@
             }
             this.match("Rparen");
             return args[0];
-            break;
           default:
             this.errorToken(token);
-            break;
         }
       },
 
       led: function(tokenName, left) {
+        var right;
         switch(tokenName) {
           case "Dot":
             var rbp = this.bindingPower.Dot;
-            var right;
             if (this.lookahead(0) !== "Star") {
                 right = this.parseDotRHS(rbp);
                 return {type: "Subexpression", children: [left, right]};
@@ -599,17 +589,14 @@
             }
             break;
           case "Pipe":
-            var right = this.expression(this.bindingPower.Pipe);
+            right = this.expression(this.bindingPower.Pipe);
             return {type: "Pipe", children: [left, right]};
-            break;
           case "Or":
-            var right = this.expression(this.bindingPower.Or);
+            right = this.expression(this.bindingPower.Or);
             return {type: "OrExpression", children: [left, right]};
-            break;
           case "And":
-            var right = this.expression(this.bindingPower.And);
+            right = this.expression(this.bindingPower.And);
             return {type: "AndExpression", children: [left, right]};
-            break;
           case "Lparen":
             var name = left.name;
             var args = [];
@@ -629,10 +616,8 @@
             this.match("Rparen");
             node = {type: "Function", name: name, children: args};
             return node;
-            break;
           case "Filter":
             var condition = this.expression(0);
-            var right;
             this.match("Rbracket");
             if (this.lookahead(0) === "Flatten") {
               right = {type: "Identity"};
@@ -640,12 +625,10 @@
               right = this.parseProjectionRHS(this.bindingPower.Filter);
             }
             return {type: "FilterProjection", children: [left, right, condition]};
-            break;
           case "Flatten":
             var leftNode = {type: "Flatten", children: [left]};
             var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
             return {type: "Projection", children: [leftNode, rightNode]};
-            break;
           case "EQ":
           case "NE":
           case "GT":
@@ -653,10 +636,8 @@
           case "LT":
           case "LTE":
             return this.parseComparator(left, tokenName);
-            break
           case "Lbracket":
             var token = this.lookaheadToken(0);
-            var right;
             if (token.type === "Number" || token.type === "Colon") {
                 right = this.parseIndexExpression();
                 return this.projectIfSlice(left, right);
