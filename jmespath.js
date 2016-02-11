@@ -1678,6 +1678,5 @@
   exports.tokenize = tokenize;
   exports.compile = compile;
   exports.search = search;
-  exports.Parser = Parser;
   exports.strictDeepEqual = strictDeepEqual;
 })(typeof exports === "undefined" ? this.jmespath = {} : exports);
