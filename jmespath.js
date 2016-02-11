@@ -834,81 +834,218 @@
       },
 
       visit: function(node, value) {
-          var visitMethod = this["visit" + node.type];
-          if (visitMethod === undefined) {
+          var matched, current, result, first, second, field, left, right, collected, i;
+          switch (node.type) {
+            case "Field":
+              if (value === null ) {
+                  return null;
+              } else if (isObject(value)) {
+                  field = value[node.name];
+                  if (field === undefined) {
+                      return null;
+                  } else {
+                      return field;
+                  }
+              } else {
+                return null;
+              }
+              break;
+            case "Subexpression":
+              result = this.visit(node.children[0], value);
+              for (i = 1; i < node.children.length; i++) {
+                  result = this.visit(node.children[1], result);
+                  if (result === null) {
+                      return null;
+                  }
+              }
+              return result;
+            case "IndexExpression":
+              left = this.visit(node.children[0], value);
+              right = this.visit(node.children[1], left);
+              return right;
+            case "Index":
+              if (!isArray(value)) {
+                return null;
+              }
+              var index = node.value;
+              if (index < 0) {
+                index = value.length + index;
+              }
+              result = value[index];
+              if (result === undefined) {
+                result = null;
+              }
+              return result;
+            case "Slice":
+              if (!isArray(value)) {
+                return null;
+              }
+              var sliceParams = node.children.slice(0);
+              var computed = this.computeSliceParams(value.length, sliceParams);
+              var start = computed[0];
+              var stop = computed[1];
+              var step = computed[2];
+              result = [];
+              if (step > 0) {
+                  for (i = start; i < stop; i += step) {
+                      result.push(value[i]);
+                  }
+              } else {
+                  for (i = start; i > stop; i += step) {
+                      result.push(value[i]);
+                  }
+              }
+              return result;
+            case "Projection":
+              // Evaluate left child.
+              var base = this.visit(node.children[0], value);
+              if (!isArray(base)) {
+                return null;
+              }
+              collected = [];
+              for (i = 0; i < base.length; i++) {
+                current = this.visit(node.children[1], base[i]);
+                if (current !== null) {
+                  collected.push(current);
+                }
+              }
+              return collected;
+            case "ValueProjection":
+              // Evaluate left child.
+              base = this.visit(node.children[0], value);
+              if (!isObject(base)) {
+                return null;
+              }
+              collected = [];
+              var values = objValues(base);
+              for (i = 0; i < values.length; i++) {
+                current = this.visit(node.children[1], values[i]);
+                if (current !== null) {
+                  collected.push(current);
+                }
+              }
+              return collected;
+            case "FilterProjection":
+              base = this.visit(node.children[0], value);
+              if (!isArray(base)) {
+                return null;
+              }
+              var filtered = [];
+              var finalResults = [];
+              for (i = 0; i < base.length; i++) {
+                matched = this.visit(node.children[2], base[i]);
+                if (!isFalse(matched)) {
+                  filtered.push(base[i]);
+                }
+              }
+              for (var j = 0; j < filtered.length; j++) {
+                current = this.visit(node.children[1], filtered[j]);
+                if (current !== null) {
+                  finalResults.push(current);
+                }
+              }
+              return finalResults;
+            case "Comparator":
+              first = this.visit(node.children[0], value);
+              second = this.visit(node.children[1], value);
+              switch(node.name) {
+                case "EQ":
+                  result = strictDeepEqual(first, second);
+                  break;
+                case "NE":
+                  result = !strictDeepEqual(first, second);
+                  break;
+                case "GT":
+                  result = first > second;
+                  break;
+                case "GTE":
+                  result = first >= second;
+                  break;
+                case "LT":
+                  result = first < second;
+                  break;
+                case "LTE":
+                  result = first <= second;
+                  break;
+                default:
+                  throw new Error("Unknown comparator: " + node.name);
+              }
+              return result;
+            case "Flatten":
+              var original = this.visit(node.children[0], value);
+              if (!isArray(original)) {
+                return null;
+              }
+              var merged = [];
+              for (i = 0; i < original.length; i++) {
+                current = original[i];
+                if (isArray(current)) {
+                  merged.push.apply(merged, current);
+                } else {
+                  merged.push(current);
+                }
+              }
+              return merged;
+            case "Identity":
+              return value;
+            case "MultiSelectList":
+              if (value === null) {
+                return null;
+              }
+              collected = [];
+              for (i = 0; i < node.children.length; i++) {
+                  collected.push(this.visit(node.children[i], value));
+              }
+              return collected;
+            case "MultiSelectHash":
+              if (value === null) {
+                return null;
+              }
+              collected = {};
+              var child;
+              for (i = 0; i < node.children.length; i++) {
+                child = node.children[i];
+                collected[child.name] = this.visit(child.value, value);
+              }
+              return collected;
+            case "OrExpression":
+              matched = this.visit(node.children[0], value);
+              if (isFalse(matched)) {
+                  matched = this.visit(node.children[1], value);
+              }
+              return matched;
+            case "AndExpression":
+              first = this.visit(node.children[0], value);
+
+              if (isFalse(first) === true) {
+                return first;
+              }
+              return this.visit(node.children[1], value);
+            case "NotExpression":
+              first = this.visit(node.children[0], value);
+              return isFalse(first);
+            case "Literal":
+              return node.value;
+            case "Pipe":
+              left = this.visit(node.children[0], value);
+              return this.visit(node.children[1], left);
+            case "Current":
+              return value;
+            case "Function":
+              var resolvedArgs = [];
+              for (i = 0; i < node.children.length; i++) {
+                  resolvedArgs.push(this.visit(node.children[i], value));
+              }
+              return this.runtime.callFunction(node.name, resolvedArgs);
+            case "ExpressionReference":
+              var refNode = node.children[0];
+              // Tag the node with a specific attribute so the type
+              // checker verify the type.
+              refNode.jmespathType = "Expref";
+              return refNode;
+            default:
               throw new Error("Unknown node type: " + node.type);
           }
-          return visitMethod.call(this, node, value);
-      },
-
-      visitField: function(node, value) {
-          if (value === null ) {
-              return null;
-          } else if (isObject(value)) {
-              var field = value[node.name];
-              if (field === undefined) {
-                  return null;
-              } else {
-                  return field;
-              }
-          } else {
-            return null;
-          }
-      },
-
-      visitSubexpression: function(node, value) {
-          var result = this.visit(node.children[0], value);
-          for (var i = 1; i < node.children.length; i++) {
-              result = this.visit(node.children[1], result);
-              if (result === null) {
-                  return null;
-              }
-          }
-          return result;
-      },
-
-      visitIndexExpression: function(node, value) {
-        var left = this.visit(node.children[0], value);
-        var right = this.visit(node.children[1], left);
-        return right;
-      },
-
-      visitIndex: function(node, value) {
-        if (!isArray(value)) {
-          return null;
-        }
-        var index = node.value;
-        if (index < 0) {
-          index = value.length + index;
-        }
-        var result = value[index];
-        if (result === undefined) {
-          result = null;
-        }
-        return result;
-      },
-
-      visitSlice: function(node, value) {
-        if (!isArray(value)) {
-          return null;
-        }
-        var sliceParams = node.children.slice(0);
-        var computed = this.computeSliceParams(value.length, sliceParams);
-        var start = computed[0];
-        var stop = computed[1];
-        var step = computed[2];
-        var result = [];
-        var i;
-        if (step > 0) {
-            for (i = start; i < stop; i += step) {
-                result.push(value[i]);
-            }
-        } else {
-            for (i = start; i > stop; i += step) {
-                result.push(value[i]);
-            }
-        }
-        return result;
       },
 
       computeSliceParams: function(arrayLength, sliceParams) {
@@ -952,188 +1089,8 @@
               actualValue = step < 0 ? arrayLength - 1 : arrayLength;
           }
           return actualValue;
-      },
-
-      visitProjection: function(node, value) {
-        // Evaluate left child.
-        var base = this.visit(node.children[0], value);
-        if (!isArray(base)) {
-          return null;
-        }
-        var collected = [];
-        for (var i = 0; i < base.length; i++) {
-          var current = this.visit(node.children[1], base[i]);
-          if (current !== null) {
-            collected.push(current);
-          }
-        }
-        return collected;
-      },
-
-      visitValueProjection: function(node, value) {
-        // Evaluate left child.
-        var base = this.visit(node.children[0], value);
-        if (!isObject(base)) {
-          return null;
-        }
-        var collected = [];
-        var values = objValues(base);
-        for (var i = 0; i < values.length; i++) {
-          var current = this.visit(node.children[1], values[i]);
-          if (current !== null) {
-            collected.push(current);
-          }
-        }
-        return collected;
-      },
-
-      visitFilterProjection: function(node, value) {
-        var base = this.visit(node.children[0], value);
-        if (!isArray(base)) {
-          return null;
-        }
-        var filtered = [];
-        var finalResults = [];
-        var matched, current;
-        for (var i = 0; i < base.length; i++) {
-          matched = this.visit(node.children[2], base[i]);
-          if (!isFalse(matched)) {
-            filtered.push(base[i]);
-          }
-        }
-        for (var j = 0; j < filtered.length; j++) {
-          current = this.visit(node.children[1], filtered[j]);
-          if (current !== null) {
-            finalResults.push(current);
-          }
-        }
-        return finalResults;
-      },
-
-      visitComparator: function(node, value) {
-        var first = this.visit(node.children[0], value);
-        var second = this.visit(node.children[1], value);
-        var result;
-        switch(node.name) {
-          case "EQ":
-            result = strictDeepEqual(first, second);
-            break;
-          case "NE":
-            result = !strictDeepEqual(first, second);
-            break;
-          case "GT":
-            result = first > second;
-            break;
-          case "GTE":
-            result = first >= second;
-            break;
-          case "LT":
-            result = first < second;
-            break;
-          case "LTE":
-            result = first <= second;
-            break;
-          default:
-            throw new Error("Unknown comparator: " + node.name);
-        }
-        return result;
-      },
-
-      visitFlatten: function(node, value) {
-        var original = this.visit(node.children[0], value);
-        if (!isArray(original)) {
-          return null;
-        }
-        var merged = [];
-        for (var i = 0; i < original.length; i++) {
-          var current = original[i];
-          if (isArray(current)) {
-            merged.push.apply(merged, current);
-          } else {
-            merged.push(current);
-          }
-        }
-        return merged;
-      },
-
-      visitIdentity: function(node, value) {
-        return value;
-      },
-
-      visitMultiSelectList: function(node, value) {
-        if (value === null) {
-          return null;
-        }
-        var collected = [];
-        for (var i = 0; i < node.children.length; i++) {
-            collected.push(this.visit(node.children[i], value));
-        }
-        return collected;
-      },
-
-      visitMultiSelectHash: function(node, value) {
-        if (value === null) {
-          return null;
-        }
-        var collected = {};
-        var child;
-        for (var i = 0; i < node.children.length; i++) {
-          child = node.children[i];
-          collected[child.name] = this.visit(child.value, value);
-        }
-        return collected;
-      },
-
-      visitOrExpression: function(node, value) {
-        var matched = this.visit(node.children[0], value);
-        if (isFalse(matched)) {
-            matched = this.visit(node.children[1], value);
-        }
-        return matched;
-      },
-
-      visitAndExpression: function(node, value) {
-        var first = this.visit(node.children[0], value);
-
-        if (isFalse(first) === true) {
-          return first;
-        }
-        return this.visit(node.children[1], value);
-      },
-
-      visitNotExpression: function(node, value) {
-        var first = this.visit(node.children[0], value);
-        return isFalse(first);
-      },
-
-      visitLiteral: function(node) {
-          return node.value;
-      },
-
-      visitPipe: function(node, value) {
-        var left = this.visit(node.children[0], value);
-        return this.visit(node.children[1], left);
-      },
-
-      visitCurrent: function(node, value) {
-          return value;
-      },
-
-      visitFunction: function(node, value) {
-        var resolvedArgs = [];
-        for (var i = 0; i < node.children.length; i++) {
-            resolvedArgs.push(this.visit(node.children[i], value));
-        }
-        return this.runtime.callFunction(node.name, resolvedArgs);
-      },
-
-      visitExpressionReference: function(node) {
-        var refNode = node.children[0];
-        // Tag the node with a specific attribute so the type
-        // checker verify the type.
-        refNode.jmespathType = "Expref";
-        return refNode;
       }
+
   };
 
   function Runtime(interpreter) {
