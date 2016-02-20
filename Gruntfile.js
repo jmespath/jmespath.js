@@ -7,15 +7,10 @@ module.exports = function(grunt) {
       options: {
         banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n',
         compress: {
-          sequences: true,
-          dead_code: true,
-          conditionals: true,
-          booleans: true,
-          unused: true,
-          if_return: true,
-          join_vars: true,
-          drop_console: true
-        }
+          unsafe: true
+        },
+        mangleProperties: true,
+        exceptionsFiles: ["reservedWords.json"]
       },
       build: {
         src: '<%= pkg.name %>.js',
