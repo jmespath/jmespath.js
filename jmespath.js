@@ -137,18 +137,47 @@
   // there are two token variants
   // ("&&", "[?", "<=", ">=").  This is specially handled
   // below.
+  var TOK_DOT = 0;
+  var TOK_STAR = 1;
+  var TOK_COMMA = 2;
+  var TOK_COLON = 3;
+  var TOK_LBRACE = 4;
+  var TOK_RBRACE = 5;
+  var TOK_FILTER = 6;
+  var TOK_FLATTEN = 7;
+  var TOK_LBRACKET = 8;
+  var TOK_RBRACKET = 9;
+  var TOK_LPAREN = 10;
+  var TOK_RPAREN = 11;
+  var TOK_CURRENT = 12;
+  var TOK_EOF = 13;
+  var TOK_UNQUOTED_IDENT = 14;
+  var TOK_QUOTED_IDENT = 15;
+  var TOK_NUMBER = 16;
+  var TOK_EXPREF = 17;
+  var TOK_PIPE = 18;
+  var TOK_OR = 19;
+  var TOK_AND = 20;
+  var TOK_EQ = 21;
+  var TOK_GT = 22;
+  var TOK_LT = 23;
+  var TOK_GTE = 24;
+  var TOK_LTE = 25;
+  var TOK_NE = 26;
+  var TOK_NOT = 27;
+  var TOK_LITERAL = 28;
 
   var basicTokens = {
-    ".": "Dot",
-    "*": "Star",
-    ",": "Comma",
-    ":": "Colon",
-    "{": "Lbrace",
-    "}": "Rbrace",
-    "]": "Rbracket",
-    "(": "Lparen",
-    ")": "Rparen",
-    "@": "Current"
+    ".": TOK_DOT,
+    "*": TOK_STAR,
+    ",": TOK_COMMA,
+    ":": TOK_COLON,
+    "{": TOK_LBRACE,
+    "}": TOK_RBRACE,
+    "]": TOK_RBRACKET,
+    "(": TOK_LPAREN,
+    ")": TOK_RPAREN,
+    "@": TOK_CURRENT
   };
 
   var identifierStart = {
@@ -204,7 +233,7 @@
               if (identifierStart[stream[this.current]] !== undefined) {
                   start = this.current;
                   identifier = this.consumeUnquotedIdentifier(stream);
-                  tokens.push({type: "UnquotedIdentifier",
+                  tokens.push({type: TOK_UNQUOTED_IDENT,
                                value: identifier,
                                start: start});
               } else if (basicTokens[stream[this.current]] !== undefined) {
@@ -223,19 +252,19 @@
               } else if (stream[this.current] === "\"") {
                   start = this.current;
                   identifier = this.consumeQuotedIdentifier(stream);
-                  tokens.push({type: "QuotedIdentifier",
+                  tokens.push({type: TOK_QUOTED_IDENT,
                                value: identifier,
                                start: start});
               } else if (stream[this.current] === "'") {
                   start = this.current;
                   identifier = this.consumeRawStringLiteral(stream);
-                  tokens.push({type: "Literal",
+                  tokens.push({type: TOK_LITERAL,
                                value: identifier,
                                start: start});
               } else if (stream[this.current] === "`") {
                   start = this.current;
                   var literal = this.consumeLiteral(stream);
-                  tokens.push({type: "Literal",
+                  tokens.push({type: TOK_LITERAL,
                                value: literal,
                                start: start});
               } else if (operatorStartToken[stream[this.current]] !== undefined) {
@@ -248,18 +277,18 @@
                   this.current++;
                   if (stream[this.current] === "&") {
                       this.current++;
-                      tokens.push({type: "And", value: "&&", start: start});
+                      tokens.push({type: TOK_AND, value: "&&", start: start});
                   } else {
-                      tokens.push({type: "Expref", value: "&", start: start});
+                      tokens.push({type: TOK_EXPREF, value: "&", start: start});
                   }
               } else if (stream[this.current] === "|") {
                   start = this.current;
                   this.current++;
                   if (stream[this.current] === "|") {
                       this.current++;
-                      tokens.push({type: "Or", value: "||", start: start});
+                      tokens.push({type: TOK_OR, value: "||", start: start});
                   } else {
-                      tokens.push({type: "Pipe", value: "|", start: start});
+                      tokens.push({type: TOK_PIPE, value: "|", start: start});
                   }
               } else {
                   var error = new Error("Unknown character:" + stream[this.current]);
@@ -326,7 +355,7 @@
               this.current++;
           }
           var value = parseInt(stream.slice(start, this.current));
-          return {type: "Number", value: value, start: start};
+          return {type: TOK_NUMBER, value: value, start: start};
       },
 
       consumeLBracket: function(stream) {
@@ -334,12 +363,12 @@
           this.current++;
           if (stream[this.current] === "?") {
               this.current++;
-              return {type: "Filter", value: "[?", start: start};
+              return {type: TOK_FILTER, value: "[?", start: start};
           } else if (stream[this.current] === "]") {
               this.current++;
-              return {type: "Flatten", value: "[]", start: start};
+              return {type: TOK_FLATTEN, value: "[]", start: start};
           } else {
-              return {type: "Lbracket", value: "[", start: start};
+              return {type: TOK_LBRACKET, value: "[", start: start};
           }
       },
 
@@ -350,28 +379,28 @@
           if (startingChar === "!") {
               if (stream[this.current] === "=") {
                   this.current++;
-                  return {type: "NE", value: "!=", start: start};
+                  return {type: TOK_NE, value: "!=", start: start};
               } else {
-                return {type: "Not", value: "!", start: start};
+                return {type: TOK_NOT, value: "!", start: start};
               }
           } else if (startingChar === "<") {
               if (stream[this.current] === "=") {
                   this.current++;
-                  return {type: "LTE", value: "<=", start: start};
+                  return {type: TOK_LTE, value: "<=", start: start};
               } else {
-                  return {type: "LT", value: "<", start: start};
+                  return {type: TOK_LT, value: "<", start: start};
               }
           } else if (startingChar === ">") {
               if (stream[this.current] === "=") {
                   this.current++;
-                  return {type: "GTE", value: ">=", start: start};
+                  return {type: TOK_GTE, value: ">=", start: start};
               } else {
-                  return {type: "GT", value: ">", start: start};
+                  return {type: TOK_GT, value: ">", start: start};
               }
           } else if (startingChar === "=") {
               if (stream[this.current] === "=") {
                   this.current++;
-                  return {type: "EQ", value: "==", start: start};
+                  return {type: TOK_EQ, value: "==", start: start};
               }
           }
       },
@@ -431,35 +460,35 @@
 
 
   function Parser() {
-      this.bindingPower = {
-          "EOF": 0,
-          "UnquotedIdentifier": 0,
-          "QuotedIdentifier": 0,
-          "Rbracket": 0,
-          "Rparen": 0,
-          "Comma": 0,
-          "Rbrace": 0,
-          "Number": 0,
-          "Current": 0,
-          "Expref": 0,
-          "Pipe": 1,
-          "Or": 2,
-          "And": 3,
-          "EQ": 5,
-          "GT": 5,
-          "LT": 5,
-          "GTE": 5,
-          "LTE": 5,
-          "NE": 5,
-          "Flatten": 9,
-          "Star": 20,
-          "Filter": 21,
-          "Dot": 40,
-          "Not": 45,
-          "Lbrace": 50,
-          "Lbracket": 55,
-          "Lparen": 60
-      };
+      var b = {};
+      b[TOK_EOF] = 0;
+      b[TOK_UNQUOTED_IDENT] = 0;
+      b[TOK_QUOTED_IDENT] = 0;
+      b[TOK_RBRACKET] = 0;
+      b[TOK_RPAREN] = 0;
+      b[TOK_COMMA] = 0;
+      b[TOK_RBRACE] = 0;
+      b[TOK_NUMBER] = 0;
+      b[TOK_CURRENT] = 0;
+      b[TOK_EXPREF] = 0;
+      b[TOK_PIPE] = 1;
+      b[TOK_OR] = 2;
+      b[TOK_AND] = 3;
+      b[TOK_EQ] = 5;
+      b[TOK_GT] = 5;
+      b[TOK_LT] = 5;
+      b[TOK_GTE] = 5;
+      b[TOK_LTE] = 5;
+      b[TOK_NE] = 5;
+      b[TOK_FLATTEN] = 9;
+      b[TOK_STAR] = 20;
+      b[TOK_FILTER] = 21;
+      b[TOK_DOT] = 40;
+      b[TOK_NOT] = 45;
+      b[TOK_LBRACE] = 50;
+      b[TOK_LBRACKET] = 55;
+      b[TOK_LPAREN] = 60;
+      this.bindingPower = b;
   }
 
   Parser.prototype = {
@@ -467,7 +496,7 @@
           this.loadTokens(expression);
           this.index = 0;
           var ast = this.expression(0);
-          if (this.lookahead(0) !== "EOF") {
+          if (this.lookahead(0) !== TOK_EOF) {
               var t = this.lookaheadToken(0);
               var error = new Error(
                   "Unexpected token type: " + t.type + ", value: " + t.value);
@@ -480,7 +509,7 @@
       loadTokens: function(expression) {
           var lexer = new Lexer();
           var tokens = lexer.tokenize(expression);
-          tokens.push({type: "EOF", value: "", start: expression.length});
+          tokens.push({type: TOK_EOF, value: "", start: expression.length});
           this.tokens = tokens;
       },
 
@@ -489,6 +518,11 @@
           this.advance();
           var left = this.nud(leftToken);
           var currentToken = this.lookahead(0);
+          /*
+          console.log("current tok:" + currentToken);
+          console.log("rbp: " + rbp);
+          console.log("bp of current tok: " + this.bindingPower[currentToken]);
+         */
           while (rbp < this.bindingPower[currentToken]) {
               this.advance();
               left = this.led(currentToken, left);
@@ -514,64 +548,64 @@
         var right;
         var expression;
         switch (token.type) {
-          case "Literal":
+          case TOK_LITERAL:
             return {type: "Literal", value: token.value};
-          case "UnquotedIdentifier":
+          case TOK_UNQUOTED_IDENT:
             return {type: "Field", name: token.value};
-          case "QuotedIdentifier":
+          case TOK_QUOTED_IDENT:
             var node = {type: "Field", name: token.value};
-            if (this.lookahead(0) === "Lparen") {
+            if (this.lookahead(0) === TOK_LPAREN) {
                 throw new Error("Quoted identifier not allowed for function names.");
             } else {
                 return node;
             }
             break;
-          case "Not":
-            right = this.expression(this.bindingPower.Not);
+          case TOK_NOT:
+            right = this.expression(this.bindingPower[TOK_NOT]);
             return {type: "NotExpression", children: [right]};
-          case "Star":
+          case TOK_STAR:
             left = {type: "Identity"};
             right = null;
-            if (this.lookahead(0) === "Rbracket") {
+            if (this.lookahead(0) === TOK_RBRACKET) {
                 // This can happen in a multiselect,
                 // [a, b, *]
                 right = {type: "Identity"};
             } else {
-                right = this.parseProjectionRHS(this.bindingPower.Star);
+                right = this.parseProjectionRHS(this.bindingPower[TOK_STAR]);
             }
             return {type: "ValueProjection", children: [left, right]};
-          case "Filter":
+          case TOK_FILTER:
             return this.led(token.type, {type: "Identity"});
-          case "Lbrace":
+          case TOK_LBRACE:
             return this.parseMultiselectHash();
-          case "Flatten":
+          case TOK_FLATTEN:
             left = {type: "Flatten", children: [{type: "Identity"}]};
-            right = this.parseProjectionRHS(this.bindingPower.Flatten);
+            right = this.parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
             return {type: "Projection", children: [left, right]};
-          case "Lbracket":
-            if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
+          case TOK_LBRACKET:
+            if (this.lookahead(0) === TOK_NUMBER || this.lookahead(0) === TOK_COLON) {
                 right = this.parseIndexExpression();
                 return this.projectIfSlice({type: "Identity"}, right);
-            } else if (this.lookahead(0) === "Star" &&
-                       this.lookahead(1) === "Rbracket") {
+            } else if (this.lookahead(0) === TOK_STAR &&
+                       this.lookahead(1) === TOK_RBRACKET) {
                 this.advance();
                 this.advance();
-                right = this.parseProjectionRHS(this.bindingPower.Star);
+                right = this.parseProjectionRHS(this.bindingPower[TOK_STAR]);
                 return {type: "Projection",
                         children: [{type: "Identity"}, right]};
             } else {
                 return this.parseMultiselectList();
             }
             break;
-          case "Current":
+          case TOK_CURRENT:
             return {type: "Current"};
-          case "Expref":
-            expression = this.expression(this.bindingPower.Expref);
+          case TOK_EXPREF:
+            expression = this.expression(this.bindingPower[TOK_EXPREF]);
             return {type: "ExpressionReference", children: [expression]};
-          case "Lparen":
+          case TOK_LPAREN:
             var args = [];
-            while (this.lookahead(0) !== "Rparen") {
-              if (this.lookahead(0) === "Current") {
+            while (this.lookahead(0) !== TOK_RPAREN) {
+              if (this.lookahead(0) === TOK_CURRENT) {
                 expression = {type: "Current"};
                 this.advance();
               } else {
@@ -579,7 +613,7 @@
               }
               args.push(expression);
             }
-            this.match("Rparen");
+            this.match(TOK_RPAREN);
             return args[0];
           default:
             this.errorToken(token);
@@ -589,9 +623,9 @@
       led: function(tokenName, left) {
         var right;
         switch(tokenName) {
-          case "Dot":
-            var rbp = this.bindingPower.Dot;
-            if (this.lookahead(0) !== "Star") {
+          case TOK_DOT:
+            var rbp = this.bindingPower[TOK_DOT];
+            if (this.lookahead(0) !== TOK_STAR) {
                 right = this.parseDotRHS(rbp);
                 return {type: "Subexpression", children: [left, right]};
             } else {
@@ -601,63 +635,65 @@
                 return {type: "ValueProjection", children: [left, right]};
             }
             break;
-          case "Pipe":
-            right = this.expression(this.bindingPower.Pipe);
+          case TOK_PIPE:
+            right = this.expression(this.bindingPower[TOK_PIPE]);
             return {type: "Pipe", children: [left, right]};
-          case "Or":
-            right = this.expression(this.bindingPower.Or);
+          case TOK_OR:
+            right = this.expression(this.bindingPower[TOK_OR]);
             return {type: "OrExpression", children: [left, right]};
-          case "And":
-            right = this.expression(this.bindingPower.And);
+          case TOK_AND:
+            right = this.expression(this.bindingPower[TOK_AND]);
             return {type: "AndExpression", children: [left, right]};
-          case "Lparen":
+          case TOK_LPAREN:
+            console.log("left: " + JSON.stringify(left));
             var name = left.name;
             var args = [];
             var expression, node;
-            while (this.lookahead(0) !== "Rparen") {
-              if (this.lookahead(0) === "Current") {
+            while (this.lookahead(0) !== TOK_RPAREN) {
+              if (this.lookahead(0) === TOK_CURRENT) {
                 expression = {type: "Current"};
                 this.advance();
               } else {
                 expression = this.expression(0);
               }
-              if (this.lookahead(0) === "Comma") {
-                this.match("Comma");
+              if (this.lookahead(0) === TOK_COMMA) {
+                this.match(TOK_COMMA);
               }
               args.push(expression);
             }
-            this.match("Rparen");
+            this.match(TOK_RPAREN);
+            console.log("The name of the function is: " + name);
             node = {type: "Function", name: name, children: args};
             return node;
-          case "Filter":
+          case TOK_FILTER:
             var condition = this.expression(0);
-            this.match("Rbracket");
-            if (this.lookahead(0) === "Flatten") {
+            this.match(TOK_RBRACKET);
+            if (this.lookahead(0) === TOK_FLATTEN) {
               right = {type: "Identity"};
             } else {
-              right = this.parseProjectionRHS(this.bindingPower.Filter);
+              right = this.parseProjectionRHS(this.bindingPower[TOK_FILTER]);
             }
             return {type: "FilterProjection", children: [left, right, condition]};
-          case "Flatten":
+          case TOK_FLATTEN:
             var leftNode = {type: "Flatten", children: [left]};
-            var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
+            var rightNode = this.parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
             return {type: "Projection", children: [leftNode, rightNode]};
-          case "EQ":
-          case "NE":
-          case "GT":
-          case "GTE":
-          case "LT":
-          case "LTE":
+          case TOK_EQ:
+          case TOK_NE:
+          case TOK_GT:
+          case TOK_GTE:
+          case TOK_LT:
+          case TOK_LTE:
             return this.parseComparator(left, tokenName);
-          case "Lbracket":
+          case TOK_LBRACKET:
             var token = this.lookaheadToken(0);
-            if (token.type === "Number" || token.type === "Colon") {
+            if (token.type === TOK_NUMBER || token.type === TOK_COLON) {
                 right = this.parseIndexExpression();
                 return this.projectIfSlice(left, right);
             } else {
-                this.match("Star");
-                this.match("Rbracket");
-                right = this.parseProjectionRHS(this.bindingPower.Star);
+                this.match(TOK_STAR);
+                this.match(TOK_RBRACKET);
+                right = this.parseProjectionRHS(this.bindingPower[TOK_STAR]);
                 return {type: "Projection", children: [left, right]};
             }
             break;
@@ -687,14 +723,14 @@
 
 
       parseIndexExpression: function() {
-          if (this.lookahead(0) === "Colon" || this.lookahead(1) === "Colon") {
+          if (this.lookahead(0) === TOK_COLON || this.lookahead(1) === TOK_COLON) {
               return this.parseSliceExpression();
           } else {
               var node = {
                   type: "Index",
                   value: this.lookaheadToken(0).value};
               this.advance();
-              this.match("Rbracket");
+              this.match(TOK_RBRACKET);
               return node;
           }
       },
@@ -704,7 +740,7 @@
           if (right.type === "Slice") {
               return {
                   type: "Projection",
-                  children: [indexExpr, this.parseProjectionRHS(this.bindingPower.Star)]
+                  children: [indexExpr, this.parseProjectionRHS(this.bindingPower[TOK_STAR])]
               };
           } else {
               return indexExpr;
@@ -717,11 +753,11 @@
           var parts = [null, null, null];
           var index = 0;
           var currentToken = this.lookahead(0);
-          while (currentToken !== "Rbracket" && index < 3) {
-              if (currentToken === "Colon") {
+          while (currentToken !== TOK_RBRACKET && index < 3) {
+              if (currentToken === TOK_COLON) {
                   index++;
                   this.advance();
-              } else if (currentToken === "Number") {
+              } else if (currentToken === TOK_NUMBER) {
                   parts[index] = this.lookaheadToken(0).value;
                   this.advance();
               } else {
@@ -733,7 +769,7 @@
               }
               currentToken = this.lookahead(0);
           }
-          this.match("Rbracket");
+          this.match(TOK_RBRACKET);
           return {
               type: "Slice",
               children: parts
@@ -747,14 +783,14 @@
 
       parseDotRHS: function(rbp) {
           var lookahead = this.lookahead(0);
-          var exprTokens = ["UnquotedIdentifier", "QuotedIdentifier", "Star"];
+          var exprTokens = [TOK_UNQUOTED_IDENT, TOK_QUOTED_IDENT, TOK_STAR];
           if (exprTokens.indexOf(lookahead) >= 0) {
               return this.expression(rbp);
-          } else if (lookahead === "Lbracket") {
-              this.match("Lbracket");
+          } else if (lookahead === TOK_LBRACKET) {
+              this.match(TOK_LBRACKET);
               return this.parseMultiselectList();
-          } else if (lookahead === "Lbrace") {
-              this.match("Lbrace");
+          } else if (lookahead === TOK_LBRACE) {
+              this.match(TOK_LBRACE);
               return this.parseMultiselectHash();
           }
       },
@@ -763,12 +799,12 @@
           var right;
           if (this.bindingPower[this.lookahead(0)] < 10) {
               right = {type: "Identity"};
-          } else if (this.lookahead(0) === "Lbracket") {
+          } else if (this.lookahead(0) === TOK_LBRACKET) {
               right = this.expression(rbp);
-          } else if (this.lookahead(0) === "Filter") {
+          } else if (this.lookahead(0) === TOK_FILTER) {
               right = this.expression(rbp);
-          } else if (this.lookahead(0) === "Dot") {
-              this.match("Dot");
+          } else if (this.lookahead(0) === TOK_DOT) {
+              this.match(TOK_DOT);
               right = this.parseDotRHS(rbp);
           } else {
               var t = this.lookaheadToken(0);
@@ -782,23 +818,23 @@
 
       parseMultiselectList: function() {
           var expressions = [];
-          while (this.lookahead(0) !== "Rbracket") {
+          while (this.lookahead(0) !== TOK_RBRACKET) {
               var expression = this.expression(0);
               expressions.push(expression);
-              if (this.lookahead(0) === "Comma") {
-                  this.match("Comma");
-                  if (this.lookahead(0) === "Rbracket") {
+              if (this.lookahead(0) === TOK_COMMA) {
+                  this.match(TOK_COMMA);
+                  if (this.lookahead(0) === TOK_RBRACKET) {
                     throw new Error("Unexpected token Rbracket");
                   }
               }
           }
-          this.match("Rbracket");
+          this.match(TOK_RBRACKET);
           return {type: "MultiSelectList", children: expressions};
       },
 
       parseMultiselectHash: function() {
         var pairs = [];
-        var identifierTypes = ["UnquotedIdentifier", "QuotedIdentifier"];
+        var identifierTypes = [TOK_UNQUOTED_IDENT, TOK_QUOTED_IDENT];
         var keyToken, keyName, value, node;
         for (;;) {
           keyToken = this.lookaheadToken(0);
@@ -808,14 +844,14 @@
           }
           keyName = keyToken.value;
           this.advance();
-          this.match("Colon");
+          this.match(TOK_COLON);
           value = this.expression(0);
           node = {type: "KeyValuePair", name: keyName, value: value};
           pairs.push(node);
-          if (this.lookahead(0) === "Comma") {
-            this.match("Comma");
-          } else if (this.lookahead(0) === "Rbrace") {
-            this.match("Rbrace");
+          if (this.lookahead(0) === TOK_COMMA) {
+            this.match(TOK_COMMA);
+          } else if (this.lookahead(0) === TOK_RBRACE) {
+            this.match(TOK_RBRACE);
             break;
           }
         }
@@ -949,22 +985,22 @@
               first = this.visit(node.children[0], value);
               second = this.visit(node.children[1], value);
               switch(node.name) {
-                case "EQ":
+                case TOK_EQ:
                   result = strictDeepEqual(first, second);
                   break;
-                case "NE":
+                case TOK_NE:
                   result = !strictDeepEqual(first, second);
                   break;
-                case "GT":
+                case TOK_GT:
                   result = first > second;
                   break;
-                case "GTE":
+                case TOK_GTE:
                   result = first >= second;
                   break;
-                case "LT":
+                case TOK_LT:
                   result = first < second;
                   break;
-                case "LTE":
+                case TOK_LTE:
                   result = first <= second;
                   break;
                 default:
@@ -1233,7 +1269,6 @@
         if (expected === TYPE_ANY) {
             return true;
         }
-        // TODO: james you are here.
         if (expected === TYPE_ARRAY_STRING ||
             expected === TYPE_ARRAY_NUMBER ||
             expected === TYPE_ARRAY) {
