@@ -459,37 +459,37 @@
       }
   };
 
+  var b = {};
+  b[TOK_EOF] = 0;
+  b[TOK_UNQUOTED_IDENT] = 0;
+  b[TOK_QUOTED_IDENT] = 0;
+  b[TOK_RBRACKET] = 0;
+  b[TOK_RPAREN] = 0;
+  b[TOK_COMMA] = 0;
+  b[TOK_RBRACE] = 0;
+  b[TOK_NUMBER] = 0;
+  b[TOK_CURRENT] = 0;
+  b[TOK_EXPREF] = 0;
+  b[TOK_PIPE] = 1;
+  b[TOK_OR] = 2;
+  b[TOK_AND] = 3;
+  b[TOK_EQ] = 5;
+  b[TOK_GT] = 5;
+  b[TOK_LT] = 5;
+  b[TOK_GTE] = 5;
+  b[TOK_LTE] = 5;
+  b[TOK_NE] = 5;
+  b[TOK_FLATTEN] = 9;
+  b[TOK_STAR] = 20;
+  b[TOK_FILTER] = 21;
+  b[TOK_DOT] = 40;
+  b[TOK_NOT] = 45;
+  b[TOK_LBRACE] = 50;
+  b[TOK_LBRACKET] = 55;
+  b[TOK_LPAREN] = 60;
+  var bindingPower = b;
 
   function Parser() {
-      var b = {};
-      b[TOK_EOF] = 0;
-      b[TOK_UNQUOTED_IDENT] = 0;
-      b[TOK_QUOTED_IDENT] = 0;
-      b[TOK_RBRACKET] = 0;
-      b[TOK_RPAREN] = 0;
-      b[TOK_COMMA] = 0;
-      b[TOK_RBRACE] = 0;
-      b[TOK_NUMBER] = 0;
-      b[TOK_CURRENT] = 0;
-      b[TOK_EXPREF] = 0;
-      b[TOK_PIPE] = 1;
-      b[TOK_OR] = 2;
-      b[TOK_AND] = 3;
-      b[TOK_EQ] = 5;
-      b[TOK_GT] = 5;
-      b[TOK_LT] = 5;
-      b[TOK_GTE] = 5;
-      b[TOK_LTE] = 5;
-      b[TOK_NE] = 5;
-      b[TOK_FLATTEN] = 9;
-      b[TOK_STAR] = 20;
-      b[TOK_FILTER] = 21;
-      b[TOK_DOT] = 40;
-      b[TOK_NOT] = 45;
-      b[TOK_LBRACE] = 50;
-      b[TOK_LBRACKET] = 55;
-      b[TOK_LPAREN] = 60;
-      this.bindingPower = b;
   }
 
   Parser.prototype = {
@@ -522,9 +522,9 @@
           /*
           console.log("current tok:" + currentToken);
           console.log("rbp: " + rbp);
-          console.log("bp of current tok: " + this.bindingPower[currentToken]);
+          console.log("bp of current tok: " + bindingPower[currentToken]);
          */
-          while (rbp < this.bindingPower[currentToken]) {
+          while (rbp < bindingPower[currentToken]) {
               this.__advance();
               left = this.__led(currentToken, left);
               currentToken = this.__lookahead(0);
@@ -562,7 +562,7 @@
             }
             break;
           case TOK_NOT:
-            right = this.__expression(this.bindingPower[TOK_NOT]);
+            right = this.__expression(bindingPower[TOK_NOT]);
             return {type: "NotExpression", children: [right]};
           case TOK_STAR:
             left = {type: "Identity"};
@@ -572,7 +572,7 @@
                 // [a, b, *]
                 right = {type: "Identity"};
             } else {
-                right = this.__parseProjectionRHS(this.bindingPower[TOK_STAR]);
+                right = this.__parseProjectionRHS(bindingPower[TOK_STAR]);
             }
             return {type: "ValueProjection", children: [left, right]};
           case TOK_FILTER:
@@ -581,7 +581,7 @@
             return this.__parseMultiselectHash();
           case TOK_FLATTEN:
             left = {type: "Flatten", children: [{type: "Identity"}]};
-            right = this.__parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
+            right = this.__parseProjectionRHS(bindingPower[TOK_FLATTEN]);
             return {type: "Projection", children: [left, right]};
           case TOK_LBRACKET:
             if (this.__lookahead(0) === TOK_NUMBER || this.__lookahead(0) === TOK_COLON) {
@@ -591,7 +591,7 @@
                        this.__lookahead(1) === TOK_RBRACKET) {
                 this.__advance();
                 this.__advance();
-                right = this.__parseProjectionRHS(this.bindingPower[TOK_STAR]);
+                right = this.__parseProjectionRHS(bindingPower[TOK_STAR]);
                 return {type: "Projection",
                         children: [{type: "Identity"}, right]};
             } else {
@@ -601,7 +601,7 @@
           case TOK_CURRENT:
             return {type: "Current"};
           case TOK_EXPREF:
-            expression = this.__expression(this.bindingPower[TOK_EXPREF]);
+            expression = this.__expression(bindingPower[TOK_EXPREF]);
             return {type: "ExpressionReference", children: [expression]};
           case TOK_LPAREN:
             var args = [];
@@ -625,7 +625,7 @@
         var right;
         switch(tokenName) {
           case TOK_DOT:
-            var rbp = this.bindingPower[TOK_DOT];
+            var rbp = bindingPower[TOK_DOT];
             if (this.__lookahead(0) !== TOK_STAR) {
                 right = this.__parseDotRHS(rbp);
                 return {type: "Subexpression", children: [left, right]};
@@ -637,13 +637,13 @@
             }
             break;
           case TOK_PIPE:
-            right = this.__expression(this.bindingPower[TOK_PIPE]);
+            right = this.__expression(bindingPower[TOK_PIPE]);
             return {type: "Pipe", children: [left, right]};
           case TOK_OR:
-            right = this.__expression(this.bindingPower[TOK_OR]);
+            right = this.__expression(bindingPower[TOK_OR]);
             return {type: "OrExpression", children: [left, right]};
           case TOK_AND:
-            right = this.__expression(this.bindingPower[TOK_AND]);
+            right = this.__expression(bindingPower[TOK_AND]);
             return {type: "AndExpression", children: [left, right]};
           case TOK_LPAREN:
             console.log("left: " + JSON.stringify(left));
@@ -672,12 +672,12 @@
             if (this.__lookahead(0) === TOK_FLATTEN) {
               right = {type: "Identity"};
             } else {
-              right = this.__parseProjectionRHS(this.bindingPower[TOK_FILTER]);
+              right = this.__parseProjectionRHS(bindingPower[TOK_FILTER]);
             }
             return {type: "FilterProjection", children: [left, right, condition]};
           case TOK_FLATTEN:
             var leftNode = {type: "Flatten", children: [left]};
-            var rightNode = this.__parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
+            var rightNode = this.__parseProjectionRHS(bindingPower[TOK_FLATTEN]);
             return {type: "Projection", children: [leftNode, rightNode]};
           case TOK_EQ:
           case TOK_NE:
@@ -694,7 +694,7 @@
             } else {
                 this.__match(TOK_STAR);
                 this.__match(TOK_RBRACKET);
-                right = this.__parseProjectionRHS(this.bindingPower[TOK_STAR]);
+                right = this.__parseProjectionRHS(bindingPower[TOK_STAR]);
                 return {type: "Projection", children: [left, right]};
             }
             break;
@@ -741,7 +741,7 @@
           if (right.type === "Slice") {
               return {
                   type: "Projection",
-                  children: [indexExpr, this.__parseProjectionRHS(this.bindingPower[TOK_STAR])]
+                  children: [indexExpr, this.__parseProjectionRHS(bindingPower[TOK_STAR])]
               };
           } else {
               return indexExpr;
@@ -778,7 +778,7 @@
       },
 
       __parseComparator: function(left, comparator) {
-        var right = this.__expression(this.bindingPower[comparator]);
+        var right = this.__expression(bindingPower[comparator]);
         return {type: "Comparator", name: comparator, children: [left, right]};
       },
 
@@ -798,7 +798,7 @@
 
       __parseProjectionRHS: function(rbp) {
           var right;
-          if (this.bindingPower[this.__lookahead(0)] < 10) {
+          if (bindingPower[this.__lookahead(0)] < 10) {
               right = {type: "Identity"};
           } else if (this.__lookahead(0) === TOK_LBRACKET) {
               right = this.__expression(rbp);
