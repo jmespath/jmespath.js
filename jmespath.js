@@ -572,30 +572,30 @@
                 // [a, b, *]
                 right = {type: "Identity"};
             } else {
-                right = this.parseProjectionRHS(this.bindingPower[TOK_STAR]);
+                right = this.__parseProjectionRHS(this.bindingPower[TOK_STAR]);
             }
             return {type: "ValueProjection", children: [left, right]};
           case TOK_FILTER:
             return this.__led(token.type, {type: "Identity"});
           case TOK_LBRACE:
-            return this.parseMultiselectHash();
+            return this.__parseMultiselectHash();
           case TOK_FLATTEN:
             left = {type: "Flatten", children: [{type: "Identity"}]};
-            right = this.parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
+            right = this.__parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
             return {type: "Projection", children: [left, right]};
           case TOK_LBRACKET:
             if (this.__lookahead(0) === TOK_NUMBER || this.__lookahead(0) === TOK_COLON) {
-                right = this.parseIndexExpression();
-                return this.projectIfSlice({type: "Identity"}, right);
+                right = this.__parseIndexExpression();
+                return this.__projectIfSlice({type: "Identity"}, right);
             } else if (this.__lookahead(0) === TOK_STAR &&
                        this.__lookahead(1) === TOK_RBRACKET) {
                 this.__advance();
                 this.__advance();
-                right = this.parseProjectionRHS(this.bindingPower[TOK_STAR]);
+                right = this.__parseProjectionRHS(this.bindingPower[TOK_STAR]);
                 return {type: "Projection",
                         children: [{type: "Identity"}, right]};
             } else {
-                return this.parseMultiselectList();
+                return this.__parseMultiselectList();
             }
             break;
           case TOK_CURRENT:
@@ -617,7 +617,7 @@
             this.__match(TOK_RPAREN);
             return args[0];
           default:
-            this.errorToken(token);
+            this.__errorToken(token);
         }
       },
 
@@ -627,12 +627,12 @@
           case TOK_DOT:
             var rbp = this.bindingPower[TOK_DOT];
             if (this.__lookahead(0) !== TOK_STAR) {
-                right = this.parseDotRHS(rbp);
+                right = this.__parseDotRHS(rbp);
                 return {type: "Subexpression", children: [left, right]};
             } else {
                 // Creating a projection.
                 this.__advance();
-                right = this.parseProjectionRHS(rbp);
+                right = this.__parseProjectionRHS(rbp);
                 return {type: "ValueProjection", children: [left, right]};
             }
             break;
@@ -672,12 +672,12 @@
             if (this.__lookahead(0) === TOK_FLATTEN) {
               right = {type: "Identity"};
             } else {
-              right = this.parseProjectionRHS(this.bindingPower[TOK_FILTER]);
+              right = this.__parseProjectionRHS(this.bindingPower[TOK_FILTER]);
             }
             return {type: "FilterProjection", children: [left, right, condition]};
           case TOK_FLATTEN:
             var leftNode = {type: "Flatten", children: [left]};
-            var rightNode = this.parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
+            var rightNode = this.__parseProjectionRHS(this.bindingPower[TOK_FLATTEN]);
             return {type: "Projection", children: [leftNode, rightNode]};
           case TOK_EQ:
           case TOK_NE:
@@ -685,21 +685,21 @@
           case TOK_GTE:
           case TOK_LT:
           case TOK_LTE:
-            return this.parseComparator(left, tokenName);
+            return this.__parseComparator(left, tokenName);
           case TOK_LBRACKET:
             var token = this.__lookaheadToken(0);
             if (token.type === TOK_NUMBER || token.type === TOK_COLON) {
-                right = this.parseIndexExpression();
-                return this.projectIfSlice(left, right);
+                right = this.__parseIndexExpression();
+                return this.__projectIfSlice(left, right);
             } else {
                 this.__match(TOK_STAR);
                 this.__match(TOK_RBRACKET);
-                right = this.parseProjectionRHS(this.bindingPower[TOK_STAR]);
+                right = this.__parseProjectionRHS(this.bindingPower[TOK_STAR]);
                 return {type: "Projection", children: [left, right]};
             }
             break;
           default:
-            this.errorToken(this.__lookaheadToken(0));
+            this.__errorToken(this.__lookaheadToken(0));
         }
       },
 
@@ -714,7 +714,7 @@
           }
       },
 
-      errorToken: function(token) {
+      __errorToken: function(token) {
           var error = new Error("Invalid token (" +
                                 token.type + "): \"" +
                                 token.value + "\"");
@@ -723,9 +723,9 @@
       },
 
 
-      parseIndexExpression: function() {
+      __parseIndexExpression: function() {
           if (this.__lookahead(0) === TOK_COLON || this.__lookahead(1) === TOK_COLON) {
-              return this.parseSliceExpression();
+              return this.__parseSliceExpression();
           } else {
               var node = {
                   type: "Index",
@@ -736,19 +736,19 @@
           }
       },
 
-      projectIfSlice: function(left, right) {
+      __projectIfSlice: function(left, right) {
           var indexExpr = {type: "IndexExpression", children: [left, right]};
           if (right.type === "Slice") {
               return {
                   type: "Projection",
-                  children: [indexExpr, this.parseProjectionRHS(this.bindingPower[TOK_STAR])]
+                  children: [indexExpr, this.__parseProjectionRHS(this.bindingPower[TOK_STAR])]
               };
           } else {
               return indexExpr;
           }
       },
 
-      parseSliceExpression: function() {
+      __parseSliceExpression: function() {
           // [start:end:step] where each part is optional, as well as the last
           // colon.
           var parts = [null, null, null];
@@ -777,26 +777,26 @@
           };
       },
 
-      parseComparator: function(left, comparator) {
+      __parseComparator: function(left, comparator) {
         var right = this.__expression(this.bindingPower[comparator]);
         return {type: "Comparator", name: comparator, children: [left, right]};
       },
 
-      parseDotRHS: function(rbp) {
+      __parseDotRHS: function(rbp) {
           var lookahead = this.__lookahead(0);
           var exprTokens = [TOK_UNQUOTED_IDENT, TOK_QUOTED_IDENT, TOK_STAR];
           if (exprTokens.indexOf(lookahead) >= 0) {
               return this.__expression(rbp);
           } else if (lookahead === TOK_LBRACKET) {
               this.__match(TOK_LBRACKET);
-              return this.parseMultiselectList();
+              return this.__parseMultiselectList();
           } else if (lookahead === TOK_LBRACE) {
               this.__match(TOK_LBRACE);
-              return this.parseMultiselectHash();
+              return this.__parseMultiselectHash();
           }
       },
 
-      parseProjectionRHS: function(rbp) {
+      __parseProjectionRHS: function(rbp) {
           var right;
           if (this.bindingPower[this.__lookahead(0)] < 10) {
               right = {type: "Identity"};
@@ -806,7 +806,7 @@
               right = this.__expression(rbp);
           } else if (this.__lookahead(0) === TOK_DOT) {
               this.__match(TOK_DOT);
-              right = this.parseDotRHS(rbp);
+              right = this.__parseDotRHS(rbp);
           } else {
               var t = this.__lookaheadToken(0);
               var error = new Error("Sytanx error, unexpected token: " +
@@ -817,7 +817,7 @@
           return right;
       },
 
-      parseMultiselectList: function() {
+      __parseMultiselectList: function() {
           var expressions = [];
           while (this.__lookahead(0) !== TOK_RBRACKET) {
               var expression = this.__expression(0);
@@ -833,7 +833,7 @@
           return {type: "MultiSelectList", children: expressions};
       },
 
-      parseMultiselectHash: function() {
+      __parseMultiselectHash: function() {
         var pairs = [];
         var identifierTypes = [TOK_UNQUOTED_IDENT, TOK_QUOTED_IDENT];
         var keyToken, keyName, value, node;
