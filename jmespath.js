@@ -221,6 +221,7 @@
 
 
   function Lexer() {
+      this.current = 0;
   }
   Lexer.prototype = {
       tokenize: function(stream) {
@@ -232,7 +233,7 @@
           while (this.current < stream.length) {
               if (identifierStart[stream[this.current]] !== undefined) {
                   start = this.current;
-                  identifier = this.consumeUnquotedIdentifier(stream);
+                  identifier = this.__consumeUnquotedIdentifier(stream);
                   tokens.push({type: TOK_UNQUOTED_IDENT,
                                value: identifier,
                                start: start});
@@ -242,33 +243,33 @@
                               start: this.current});
                   this.current++;
               } else if (numbers[stream[this.current]] !== undefined) {
-                  token = this.consumeNumber(stream);
+                  token = this.__consumeNumber(stream);
                   tokens.push(token);
               } else if (stream[this.current] === "[") {
                   // No need to increment this.current.  This happens
-                  // in consumeLBracket
-                  token = this.consumeLBracket(stream);
+                  // in __consumeLBracket
+                  token = this.__consumeLBracket(stream);
                   tokens.push(token);
               } else if (stream[this.current] === "\"") {
                   start = this.current;
-                  identifier = this.consumeQuotedIdentifier(stream);
+                  identifier = this.__consumeQuotedIdentifier(stream);
                   tokens.push({type: TOK_QUOTED_IDENT,
                                value: identifier,
                                start: start});
               } else if (stream[this.current] === "'") {
                   start = this.current;
-                  identifier = this.consumeRawStringLiteral(stream);
+                  identifier = this.__consumeRawStringLiteral(stream);
                   tokens.push({type: TOK_LITERAL,
                                value: identifier,
                                start: start});
               } else if (stream[this.current] === "`") {
                   start = this.current;
-                  var literal = this.consumeLiteral(stream);
+                  var literal = this.__consumeLiteral(stream);
                   tokens.push({type: TOK_LITERAL,
                                value: literal,
                                start: start});
               } else if (operatorStartToken[stream[this.current]] !== undefined) {
-                  tokens.push(this.consumeOperator(stream));
+                  tokens.push(this.__consumeOperator(stream));
               } else if (skipChars[stream[this.current]] !== undefined) {
                   // Ignore whitespace.
                   this.current++;
@@ -299,7 +300,7 @@
           return tokens;
       },
 
-      consumeUnquotedIdentifier: function(stream) {
+      __consumeUnquotedIdentifier: function(stream) {
           var start = this.current;
           this.current++;
           while (identifierTrailing[stream[this.current]] !== undefined) {
@@ -308,7 +309,7 @@
           return stream.slice(start, this.current);
       },
 
-      consumeQuotedIdentifier: function(stream) {
+      __consumeQuotedIdentifier: function(stream) {
           var start = this.current;
           this.current++;
           var maxLength = stream.length;
@@ -327,7 +328,7 @@
           return JSON.parse(stream.slice(start, this.current));
       },
 
-      consumeRawStringLiteral: function(stream) {
+      __consumeRawStringLiteral: function(stream) {
           var start = this.current;
           this.current++;
           var maxLength = stream.length;
@@ -347,7 +348,7 @@
           return literal.replace("\\'", "'");
       },
 
-      consumeNumber: function(stream) {
+      __consumeNumber: function(stream) {
           var start = this.current;
           this.current++;
           var maxLength = stream.length;
@@ -358,7 +359,7 @@
           return {type: TOK_NUMBER, value: value, start: start};
       },
 
-      consumeLBracket: function(stream) {
+      __consumeLBracket: function(stream) {
           var start = this.current;
           this.current++;
           if (stream[this.current] === "?") {
@@ -372,7 +373,7 @@
           }
       },
 
-      consumeOperator: function(stream) {
+      __consumeOperator: function(stream) {
           var start = this.current;
           var startingChar = stream[start];
           this.current++;
@@ -405,7 +406,7 @@
           }
       },
 
-      consumeLiteral: function(stream) {
+      __consumeLiteral: function(stream) {
           this.current++;
           var start = this.current;
           var maxLength = stream.length;
@@ -423,7 +424,7 @@
           }
           var literalString = stream.slice(start, this.current).trimLeft();
           literalString = literalString.replace("\\`", "`");
-          if (this.looksLikeJSON(literalString)) {
+          if (this.__looksLikeJSON(literalString)) {
               literal = JSON.parse(literalString);
           } else {
               // Try to JSON parse it as "<literal>"
@@ -434,7 +435,7 @@
           return literal;
       },
 
-      looksLikeJSON: function(literalString) {
+      __looksLikeJSON: function(literalString) {
           var startingChars = "[{\"";
           var jsonLiterals = ["true", "false", "null"];
           var numberLooking = "-0123456789";
