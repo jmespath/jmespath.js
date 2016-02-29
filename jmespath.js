@@ -1138,68 +1138,68 @@
         // types.  If the type is "any" then no type checking
         // occurs on the argument.  Variadic is optional
         // and if not provided is assumed to be false.
-        abs: {func: this.functionAbs, signature: [{types: [TYPE_NUMBER]}]},
-        avg: {func: this.functionAvg, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
-        ceil: {func: this.functionCeil, signature: [{types: [TYPE_NUMBER]}]},
+        abs: {func: this.__functionAbs, signature: [{types: [TYPE_NUMBER]}]},
+        avg: {func: this.__functionAvg, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
+        ceil: {func: this.__functionCeil, signature: [{types: [TYPE_NUMBER]}]},
         contains: {
-            func: this.functionContains,
+            func: this.__functionContains,
             signature: [{types: [TYPE_STRING, TYPE_ARRAY]},
                         {types: [TYPE_ANY]}]},
         "ends_with": {
-            func: this.functionEndsWith,
+            func: this.__functionEndsWith,
             signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
         floor: {func: this.functionFloor, signature: [{types: [TYPE_NUMBER]}]},
         length: {
-            func: this.functionLength,
+            func: this.__functionLength,
             signature: [{types: [TYPE_STRING, TYPE_ARRAY, TYPE_OBJECT]}]},
         map: {
-            func: this.functionMap,
+            func: this.__functionMap,
             signature: [{types: [TYPE_EXPREF]}, {types: [TYPE_ARRAY]}]},
         max: {
-            func: this.functionMax,
+            func: this.__functionMax,
             signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
         "merge": {
-            func: this.functionMerge,
+            func: this.__functionMerge,
             signature: [{types: [TYPE_OBJECT], variadic: true}]
         },
         "max_by": {
-          func: this.functionMaxBy,
+          func: this.__functionMaxBy,
           signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
-        sum: {func: this.functionSum, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
+        sum: {func: this.__functionSum, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
         "starts_with": {
-            func: this.functionStartsWith,
+            func: this.__functionStartsWith,
             signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
         min: {
-            func: this.functionMin,
+            func: this.__functionMin,
             signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
         "min_by": {
-          func: this.functionMinBy,
+          func: this.__functionMinBy,
           signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
-        type: {func: this.functionType, signature: [{types: [TYPE_ANY]}]},
-        keys: {func: this.functionKeys, signature: [{types: [TYPE_OBJECT]}]},
-        values: {func: this.functionValues, signature: [{types: [TYPE_OBJECT]}]},
-        sort: {func: this.functionSort, signature: [{types: [TYPE_ARRAY_STRING, TYPE_ARRAY_NUMBER]}]},
+        type: {func: this.__functionType, signature: [{types: [TYPE_ANY]}]},
+        keys: {func: this.__functionKeys, signature: [{types: [TYPE_OBJECT]}]},
+        values: {func: this.__functionValues, signature: [{types: [TYPE_OBJECT]}]},
+        sort: {func: this.__functionSort, signature: [{types: [TYPE_ARRAY_STRING, TYPE_ARRAY_NUMBER]}]},
         "sort_by": {
-          func: this.functionSortBy,
+          func: this.__functionSortBy,
           signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
         join: {
-            func: this.functionJoin,
+            func: this.__functionJoin,
             signature: [
                 {types: [TYPE_STRING]},
                 {types: [TYPE_ARRAY_STRING]}
             ]
         },
         reverse: {
-            func: this.functionReverse,
+            func: this.__functionReverse,
             signature: [{types: [TYPE_STRING, TYPE_ARRAY]}]},
-        "to_array": {func: this.functionToArray, signature: [{types: [TYPE_ANY]}]},
-        "to_string": {func: this.functionToString, signature: [{types: [TYPE_ANY]}]},
-        "to_number": {func: this.functionToNumber, signature: [{types: [TYPE_ANY]}]},
+        "to_array": {func: this.__functionToArray, signature: [{types: [TYPE_ANY]}]},
+        "to_string": {func: this.__functionToString, signature: [{types: [TYPE_ANY]}]},
+        "to_number": {func: this.__functionToNumber, signature: [{types: [TYPE_ANY]}]},
         "not_null": {
-            func: this.functionNotNull,
+            func: this.__functionNotNull,
             signature: [{types: [TYPE_ANY], variadic: true}]
         }
     };
@@ -1211,11 +1211,11 @@
       if (functionEntry === undefined) {
           throw new Error("Unknown function: " + name + "()");
       }
-      this.validateArgs(name, resolvedArgs, functionEntry.signature);
+      this.__validateArgs(name, resolvedArgs, functionEntry.signature);
       return functionEntry.func.call(this, resolvedArgs);
     },
 
-    validateArgs: function(name, args, signature) {
+    __validateArgs: function(name, args, signature) {
         // Validating the args requires validating
         // the correct arity and the correct type of each arg.
         // If the last argument is declared as variadic, then we need
@@ -1243,7 +1243,7 @@
             currentSpec = signature[i].types;
             actualType = this.getTypeName(args[i]);
             for (var j = 0; j < currentSpec.length; j++) {
-                if (this.typeMatches(actualType, currentSpec[j], args[i])) {
+                if (this.__typeMatches(actualType, currentSpec[j], args[i])) {
                     typeMatched = true;
                     break;
                 }
@@ -1258,7 +1258,7 @@
         }
     },
 
-    typeMatches: function(actual, expected, argValue) {
+    __typeMatches: function(actual, expected, argValue) {
         if (expected === TYPE_ANY) {
             return true;
         }
@@ -1281,7 +1281,7 @@
                   subtype = TYPE_STRING;
                 }
                 for (var i = 0; i < argValue.length; i++) {
-                    if (!this.typeMatches(
+                    if (!this.__typeMatches(
                             this.getTypeName(argValue[i]), subtype,
                                              argValue[i])) {
                         return false;
@@ -1316,17 +1316,17 @@
         }
     },
 
-    functionStartsWith: function(resolvedArgs) {
+    __functionStartsWith: function(resolvedArgs) {
         return resolvedArgs[0].lastIndexOf(resolvedArgs[1]) === 0;
     },
 
-    functionEndsWith: function(resolvedArgs) {
+    __functionEndsWith: function(resolvedArgs) {
         var searchStr = resolvedArgs[0];
         var suffix = resolvedArgs[1];
         return searchStr.indexOf(suffix, searchStr.length - suffix.length) !== -1;
     },
 
-    functionReverse: function(resolvedArgs) {
+    __functionReverse: function(resolvedArgs) {
         var typeName = this.getTypeName(resolvedArgs[0]);
         if (typeName === TYPE_STRING) {
           var originalStr = resolvedArgs[0];
@@ -1342,15 +1342,15 @@
         }
     },
 
-    functionAbs: function(resolvedArgs) {
+    __functionAbs: function(resolvedArgs) {
       return Math.abs(resolvedArgs[0]);
     },
 
-    functionCeil: function(resolvedArgs) {
+    __functionCeil: function(resolvedArgs) {
         return Math.ceil(resolvedArgs[0]);
     },
 
-    functionAvg: function(resolvedArgs) {
+    __functionAvg: function(resolvedArgs) {
         var sum = 0;
         var inputArray = resolvedArgs[0];
         for (var i = 0; i < inputArray.length; i++) {
@@ -1359,7 +1359,7 @@
         return sum / inputArray.length;
     },
 
-    functionContains: function(resolvedArgs) {
+    __functionContains: function(resolvedArgs) {
         return resolvedArgs[0].indexOf(resolvedArgs[1]) >= 0;
     },
 
@@ -1367,7 +1367,7 @@
         return Math.floor(resolvedArgs[0]);
     },
 
-    functionLength: function(resolvedArgs) {
+    __functionLength: function(resolvedArgs) {
        if (!isObject(resolvedArgs[0])) {
          return resolvedArgs[0].length;
        } else {
@@ -1377,7 +1377,7 @@
        }
     },
 
-    functionMap: function(resolvedArgs) {
+    __functionMap: function(resolvedArgs) {
       var mapped = [];
       var interpreter = this.interpreter;
       var exprefNode = resolvedArgs[0];
@@ -1388,7 +1388,7 @@
       return mapped;
     },
 
-    functionMerge: function(resolvedArgs) {
+    __functionMerge: function(resolvedArgs) {
       var merged = {};
       for (var i = 0; i < resolvedArgs.length; i++) {
         var current = resolvedArgs[i];
@@ -1399,7 +1399,7 @@
       return merged;
     },
 
-    functionMax: function(resolvedArgs) {
+    __functionMax: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
         var typeName = this.getTypeName(resolvedArgs[0][0]);
         if (typeName === TYPE_NUMBER) {
@@ -1419,7 +1419,7 @@
       }
     },
 
-    functionMin: function(resolvedArgs) {
+    __functionMin: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
         var typeName = this.getTypeName(resolvedArgs[0][0]);
         if (typeName === TYPE_NUMBER) {
@@ -1439,7 +1439,7 @@
       }
     },
 
-    functionSum: function(resolvedArgs) {
+    __functionSum: function(resolvedArgs) {
       var sum = 0;
       var listToSum = resolvedArgs[0];
       for (var i = 0; i < listToSum.length; i++) {
@@ -1448,7 +1448,7 @@
       return sum;
     },
 
-    functionType: function(resolvedArgs) {
+    __functionType: function(resolvedArgs) {
         switch (this.getTypeName(resolvedArgs[0])) {
           case TYPE_NUMBER:
             return "number";
@@ -1467,11 +1467,11 @@
         }
     },
 
-    functionKeys: function(resolvedArgs) {
+    __functionKeys: function(resolvedArgs) {
         return Object.keys(resolvedArgs[0]);
     },
 
-    functionValues: function(resolvedArgs) {
+    __functionValues: function(resolvedArgs) {
         var obj = resolvedArgs[0];
         var keys = Object.keys(obj);
         var values = [];
@@ -1481,13 +1481,13 @@
         return values;
     },
 
-    functionJoin: function(resolvedArgs) {
+    __functionJoin: function(resolvedArgs) {
         var joinChar = resolvedArgs[0];
         var listJoin = resolvedArgs[1];
         return listJoin.join(joinChar);
     },
 
-    functionToArray: function(resolvedArgs) {
+    __functionToArray: function(resolvedArgs) {
         if (this.getTypeName(resolvedArgs[0]) === TYPE_ARRAY) {
             return resolvedArgs[0];
         } else {
@@ -1495,7 +1495,7 @@
         }
     },
 
-    functionToString: function(resolvedArgs) {
+    __functionToString: function(resolvedArgs) {
         if (this.getTypeName(resolvedArgs[0]) === TYPE_STRING) {
             return resolvedArgs[0];
         } else {
@@ -1503,7 +1503,7 @@
         }
     },
 
-    functionToNumber: function(resolvedArgs) {
+    __functionToNumber: function(resolvedArgs) {
         var typeName = this.getTypeName(resolvedArgs[0]);
         var convertedValue;
         if (typeName === TYPE_NUMBER) {
@@ -1517,7 +1517,7 @@
         return null;
     },
 
-    functionNotNull: function(resolvedArgs) {
+    __functionNotNull: function(resolvedArgs) {
         for (var i = 0; i < resolvedArgs.length; i++) {
             if (this.getTypeName(resolvedArgs[i]) !== TYPE_NULL) {
                 return resolvedArgs[i];
@@ -1526,13 +1526,13 @@
         return null;
     },
 
-    functionSort: function(resolvedArgs) {
+    __functionSort: function(resolvedArgs) {
         var sortedArray = resolvedArgs[0].slice(0);
         sortedArray.sort();
         return sortedArray;
     },
 
-    functionSortBy: function(resolvedArgs) {
+    __functionSortBy: function(resolvedArgs) {
         var sortedArray = resolvedArgs[0].slice(0);
         if (sortedArray.length === 0) {
             return sortedArray;
@@ -1586,7 +1586,7 @@
         return sortedArray;
     },
 
-    functionMaxBy: function(resolvedArgs) {
+    __functionMaxBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
       var keyFunction = this.createKeyFunction(exprefNode, [TYPE_NUMBER, TYPE_STRING]);
@@ -1603,7 +1603,7 @@
       return maxRecord;
     },
 
-    functionMinBy: function(resolvedArgs) {
+    __functionMinBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
       var keyFunction = this.createKeyFunction(exprefNode, [TYPE_NUMBER, TYPE_STRING]);
