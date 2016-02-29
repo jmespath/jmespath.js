@@ -129,7 +129,6 @@
     };
   }
 
-
   // Type constants used to define functions.
   var TYPE_NUMBER = 0;
   var TYPE_ANY = 1;
@@ -141,7 +140,6 @@
   var TYPE_NULL = 7;
   var TYPE_ARRAY_NUMBER = 8;
   var TYPE_ARRAY_STRING = 9;
-
 
   var TOK_EOF = "EOF";
   var TOK_UNQUOTEDIDENTIFIER = "UnquotedIdentifier";
@@ -192,16 +190,6 @@
     "@": TOK_CURRENT
   };
 
-  var identifierStart = {
-      a: true, b: true, c: true, d: true, e: true, f: true, g: true, h: true,
-      i: true, j: true, k: true, l: true, m: true, n: true, o: true, p: true,
-      q: true, r: true, s: true, t: true, u: true, v: true, w: true, x: true,
-      y: true, z: true, A: true, B: true, C: true, D: true, E: true, F: true,
-      G: true, H: true, I: true, J: true, K: true, L: true, M: true, N: true,
-      O: true, P: true, Q: true, R: true, S: true, T: true, U: true, V: true,
-      W: true, X: true, Y: true, Z: true, _: true
-  };
-
   var operatorStartToken = {
       "<": true,
       ">": true,
@@ -223,14 +211,25 @@
       "-": true
   };
 
-  var identifierTrailing = merge(identifierStart, numbers);
-
   var skipChars = {
       " ": true,
       "\t": true,
       "\n": true
   };
 
+
+  function isAlpha(ch) { 
+      return (ch >= "a" && ch <= "z") ||
+             (ch >= "A" && ch <= "Z") ||
+             ch === "_"
+  }
+
+  function isAlphaNum(ch) {
+      return (ch >= "a" && ch <= "z") ||
+             (ch >= "A" && ch <= "Z") ||
+             (ch >= "0" && ch <= "9") ||
+             ch === "_"
+  }
 
   function Lexer() {
   }
@@ -242,7 +241,7 @@
           var identifier;
           var token;
           while (this.current < stream.length) {
-              if (identifierStart[stream[this.current]] !== undefined) {
+              if (isAlpha(stream[this.current])) {
                   start = this.current;
                   identifier = this.consumeUnquotedIdentifier(stream);
                   tokens.push({type: TOK_UNQUOTEDIDENTIFIER,
@@ -314,7 +313,7 @@
       consumeUnquotedIdentifier: function(stream) {
           var start = this.current;
           this.current++;
-          while (identifierTrailing[stream[this.current]] !== undefined) {
+          while (this.current < stream.length && isAlphaNum(stream[this.current])) {
               this.current++;
           }
           return stream.slice(start, this.current);
