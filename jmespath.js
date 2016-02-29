@@ -197,20 +197,6 @@
       "!": true
   };
 
-  var numbers = {
-      0: true,
-      1: true,
-      2: true,
-      3: true,
-      4: true,
-      5: true,
-      6: true,
-      7: true,
-      8: true,
-      9: true,
-      "-": true
-  };
-
   var skipChars = {
       " ": true,
       "\t": true,
@@ -218,17 +204,21 @@
   };
 
 
-  function isAlpha(ch) { 
+  function isAlpha(ch) {
       return (ch >= "a" && ch <= "z") ||
              (ch >= "A" && ch <= "Z") ||
-             ch === "_"
+             ch === "_";
   }
 
+  function isNum(ch) {
+      return (ch >= "0" && ch <= "9") ||
+             ch === "-";
+  }
   function isAlphaNum(ch) {
       return (ch >= "a" && ch <= "z") ||
              (ch >= "A" && ch <= "Z") ||
              (ch >= "0" && ch <= "9") ||
-             ch === "_"
+             ch === "_";
   }
 
   function Lexer() {
@@ -252,7 +242,7 @@
                               value: stream[this.current],
                               start: this.current});
                   this.current++;
-              } else if (numbers[stream[this.current]] !== undefined) {
+              } else if (isNum(stream[this.current])) {
                   token = this.consumeNumber(stream);
                   tokens.push(token);
               } else if (stream[this.current] === "[") {
@@ -362,7 +352,7 @@
           var start = this.current;
           this.current++;
           var maxLength = stream.length;
-          while (numbers[stream[this.current]] !== undefined && this.current < maxLength) {
+          while (isNum(stream[this.current]) && this.current < maxLength) {
               this.current++;
           }
           var value = parseInt(stream.slice(start, this.current));
