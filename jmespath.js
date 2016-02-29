@@ -493,11 +493,11 @@
 
   Parser.prototype = {
       parse: function(expression) {
-          this.loadTokens(expression);
+          this.__loadTokens(expression);
           this.index = 0;
           var ast = this.expression(0);
-          if (this.lookahead(0) !== TOK_EOF) {
-              var t = this.lookaheadToken(0);
+          if (this.__lookahead(0) !== TOK_EOF) {
+              var t = this.__lookaheadToken(0);
               var error = new Error(
                   "Unexpected token type: " + t.type + ", value: " + t.value);
               error.name = "ParserError";
@@ -506,7 +506,7 @@
           return ast;
       },
 
-      loadTokens: function(expression) {
+      __loadTokens: function(expression) {
           var lexer = new Lexer();
           var tokens = lexer.tokenize(expression);
           tokens.push({type: TOK_EOF, value: "", start: expression.length});
@@ -514,27 +514,27 @@
       },
 
       expression: function(rbp) {
-          var leftToken = this.lookaheadToken(0);
-          this.advance();
+          var leftToken = this.__lookaheadToken(0);
+          this.__advance();
           var left = this.nud(leftToken);
-          var currentToken = this.lookahead(0);
+          var currentToken = this.__lookahead(0);
           while (rbp < bindingPower[currentToken]) {
-              this.advance();
+              this.__advance();
               left = this.led(currentToken, left);
-              currentToken = this.lookahead(0);
+              currentToken = this.__lookahead(0);
           }
           return left;
       },
 
-      lookahead: function(number) {
+      __lookahead: function(number) {
           return this.tokens[this.index + number].type;
       },
 
-      lookaheadToken: function(number) {
+      __lookaheadToken: function(number) {
           return this.tokens[this.index + number];
       },
 
-      advance: function() {
+      __advance: function() {
           this.index++;
       },
 
@@ -549,7 +549,7 @@
             return {type: "Field", name: token.value};
           case TOK_QUOTEDIDENTIFIER:
             var node = {type: "Field", name: token.value};
-            if (this.lookahead(0) === TOK_LPAREN) {
+            if (this.__lookahead(0) === TOK_LPAREN) {
                 throw new Error("Quoted identifier not allowed for function names.");
             } else {
                 return node;
@@ -561,35 +561,35 @@
           case TOK_STAR:
             left = {type: "Identity"};
             right = null;
-            if (this.lookahead(0) === TOK_RBRACKET) {
+            if (this.__lookahead(0) === TOK_RBRACKET) {
                 // This can happen in a multiselect,
                 // [a, b, *]
                 right = {type: "Identity"};
             } else {
-                right = this.parseProjectionRHS(bindingPower.Star);
+                right = this.__parseProjectionRHS(bindingPower.Star);
             }
             return {type: "ValueProjection", children: [left, right]};
           case TOK_FILTER:
             return this.led(token.type, {type: "Identity"});
           case TOK_LBRACE:
-            return this.parseMultiselectHash();
+            return this.__parseMultiselectHash();
           case TOK_FLATTEN:
             left = {type: TOK_FLATTEN, children: [{type: "Identity"}]};
-            right = this.parseProjectionRHS(bindingPower.Flatten);
+            right = this.__parseProjectionRHS(bindingPower.Flatten);
             return {type: "Projection", children: [left, right]};
           case TOK_LBRACKET:
-            if (this.lookahead(0) === TOK_NUMBER || this.lookahead(0) === TOK_COLON) {
-                right = this.parseIndexExpression();
-                return this.projectIfSlice({type: "Identity"}, right);
-            } else if (this.lookahead(0) === TOK_STAR &&
-                       this.lookahead(1) === TOK_RBRACKET) {
-                this.advance();
-                this.advance();
-                right = this.parseProjectionRHS(bindingPower.Star);
+            if (this.__lookahead(0) === TOK_NUMBER || this.__lookahead(0) === TOK_COLON) {
+                right = this.__parseIndexExpression();
+                return this.__projectIfSlice({type: "Identity"}, right);
+            } else if (this.__lookahead(0) === TOK_STAR &&
+                       this.__lookahead(1) === TOK_RBRACKET) {
+                this.__advance();
+                this.__advance();
+                right = this.__parseProjectionRHS(bindingPower.Star);
                 return {type: "Projection",
                         children: [{type: "Identity"}, right]};
             } else {
-                return this.parseMultiselectList();
+                return this.__parseMultiselectList();
             }
             break;
           case TOK_CURRENT:
@@ -599,19 +599,19 @@
             return {type: "ExpressionReference", children: [expression]};
           case TOK_LPAREN:
             var args = [];
-            while (this.lookahead(0) !== TOK_RPAREN) {
-              if (this.lookahead(0) === TOK_CURRENT) {
+            while (this.__lookahead(0) !== TOK_RPAREN) {
+              if (this.__lookahead(0) === TOK_CURRENT) {
                 expression = {type: TOK_CURRENT};
-                this.advance();
+                this.__advance();
               } else {
                 expression = this.expression(0);
               }
               args.push(expression);
             }
-            this.match(TOK_RPAREN);
+            this.__match(TOK_RPAREN);
             return args[0];
           default:
-            this.errorToken(token);
+            this.__errorToken(token);
         }
       },
 
@@ -620,13 +620,13 @@
         switch(tokenName) {
           case TOK_DOT:
             var rbp = bindingPower.Dot;
-            if (this.lookahead(0) !== TOK_STAR) {
-                right = this.parseDotRHS(rbp);
+            if (this.__lookahead(0) !== TOK_STAR) {
+                right = this.__parseDotRHS(rbp);
                 return {type: "Subexpression", children: [left, right]};
             } else {
                 // Creating a projection.
-                this.advance();
-                right = this.parseProjectionRHS(rbp);
+                this.__advance();
+                right = this.__parseProjectionRHS(rbp);
                 return {type: "ValueProjection", children: [left, right]};
             }
             break;
@@ -643,33 +643,33 @@
             var name = left.name;
             var args = [];
             var expression, node;
-            while (this.lookahead(0) !== TOK_RPAREN) {
-              if (this.lookahead(0) === TOK_CURRENT) {
+            while (this.__lookahead(0) !== TOK_RPAREN) {
+              if (this.__lookahead(0) === TOK_CURRENT) {
                 expression = {type: TOK_CURRENT};
-                this.advance();
+                this.__advance();
               } else {
                 expression = this.expression(0);
               }
-              if (this.lookahead(0) === TOK_COMMA) {
-                this.match(TOK_COMMA);
+              if (this.__lookahead(0) === TOK_COMMA) {
+                this.__match(TOK_COMMA);
               }
               args.push(expression);
             }
-            this.match(TOK_RPAREN);
+            this.__match(TOK_RPAREN);
             node = {type: "Function", name: name, children: args};
             return node;
           case TOK_FILTER:
             var condition = this.expression(0);
-            this.match(TOK_RBRACKET);
-            if (this.lookahead(0) === TOK_FLATTEN) {
+            this.__match(TOK_RBRACKET);
+            if (this.__lookahead(0) === TOK_FLATTEN) {
               right = {type: "Identity"};
             } else {
-              right = this.parseProjectionRHS(bindingPower.Filter);
+              right = this.__parseProjectionRHS(bindingPower.Filter);
             }
             return {type: "FilterProjection", children: [left, right, condition]};
           case TOK_FLATTEN:
             var leftNode = {type: TOK_FLATTEN, children: [left]};
-            var rightNode = this.parseProjectionRHS(bindingPower.Flatten);
+            var rightNode = this.__parseProjectionRHS(bindingPower.Flatten);
             return {type: "Projection", children: [leftNode, rightNode]};
           case TOK_EQ:
           case TOK_NE:
@@ -677,36 +677,36 @@
           case TOK_GTE:
           case TOK_LT:
           case TOK_LTE:
-            return this.parseComparator(left, tokenName);
+            return this.__parseComparator(left, tokenName);
           case TOK_LBRACKET:
-            var token = this.lookaheadToken(0);
+            var token = this.__lookaheadToken(0);
             if (token.type === TOK_NUMBER || token.type === TOK_COLON) {
-                right = this.parseIndexExpression();
-                return this.projectIfSlice(left, right);
+                right = this.__parseIndexExpression();
+                return this.__projectIfSlice(left, right);
             } else {
-                this.match(TOK_STAR);
-                this.match(TOK_RBRACKET);
-                right = this.parseProjectionRHS(bindingPower.Star);
+                this.__match(TOK_STAR);
+                this.__match(TOK_RBRACKET);
+                right = this.__parseProjectionRHS(bindingPower.Star);
                 return {type: "Projection", children: [left, right]};
             }
             break;
           default:
-            this.errorToken(this.lookaheadToken(0));
+            this.__errorToken(this.__lookaheadToken(0));
         }
       },
 
-      match: function(tokenType) {
-          if (this.lookahead(0) === tokenType) {
-              this.advance();
+      __match: function(tokenType) {
+          if (this.__lookahead(0) === tokenType) {
+              this.__advance();
           } else {
-              var t = this.lookaheadToken(0);
+              var t = this.__lookaheadToken(0);
               var error = new Error("Expected " + tokenType + ", got: " + t.type);
               error.name = "ParserError";
               throw error;
           }
       },
 
-      errorToken: function(token) {
+      __errorToken: function(token) {
           var error = new Error("Invalid token (" +
                                 token.type + "): \"" +
                                 token.value + "\"");
@@ -715,92 +715,92 @@
       },
 
 
-      parseIndexExpression: function() {
-          if (this.lookahead(0) === TOK_COLON || this.lookahead(1) === TOK_COLON) {
-              return this.parseSliceExpression();
+      __parseIndexExpression: function() {
+          if (this.__lookahead(0) === TOK_COLON || this.__lookahead(1) === TOK_COLON) {
+              return this.__parseSliceExpression();
           } else {
               var node = {
                   type: "Index",
-                  value: this.lookaheadToken(0).value};
-              this.advance();
-              this.match(TOK_RBRACKET);
+                  value: this.__lookaheadToken(0).value};
+              this.__advance();
+              this.__match(TOK_RBRACKET);
               return node;
           }
       },
 
-      projectIfSlice: function(left, right) {
+      __projectIfSlice: function(left, right) {
           var indexExpr = {type: "IndexExpression", children: [left, right]};
           if (right.type === "Slice") {
               return {
                   type: "Projection",
-                  children: [indexExpr, this.parseProjectionRHS(bindingPower.Star)]
+                  children: [indexExpr, this.__parseProjectionRHS(bindingPower.Star)]
               };
           } else {
               return indexExpr;
           }
       },
 
-      parseSliceExpression: function() {
+      __parseSliceExpression: function() {
           // [start:end:step] where each part is optional, as well as the last
           // colon.
           var parts = [null, null, null];
           var index = 0;
-          var currentToken = this.lookahead(0);
+          var currentToken = this.__lookahead(0);
           while (currentToken !== TOK_RBRACKET && index < 3) {
               if (currentToken === TOK_COLON) {
                   index++;
-                  this.advance();
+                  this.__advance();
               } else if (currentToken === TOK_NUMBER) {
-                  parts[index] = this.lookaheadToken(0).value;
-                  this.advance();
+                  parts[index] = this.__lookaheadToken(0).value;
+                  this.__advance();
               } else {
-                  var t = this.lookahead(0);
+                  var t = this.__lookahead(0);
                   var error = new Error("Syntax error, unexpected token: " +
                                         t.value + "(" + t.type + ")");
                   error.name = "Parsererror";
                   throw error;
               }
-              currentToken = this.lookahead(0);
+              currentToken = this.__lookahead(0);
           }
-          this.match(TOK_RBRACKET);
+          this.__match(TOK_RBRACKET);
           return {
               type: "Slice",
               children: parts
           };
       },
 
-      parseComparator: function(left, comparator) {
+      __parseComparator: function(left, comparator) {
         var right = this.expression(bindingPower[comparator]);
         return {type: "Comparator", name: comparator, children: [left, right]};
       },
 
-      parseDotRHS: function(rbp) {
-          var lookahead = this.lookahead(0);
+      __parseDotRHS: function(rbp) {
+          var lookahead = this.__lookahead(0);
           var exprTokens = [TOK_UNQUOTEDIDENTIFIER, TOK_QUOTEDIDENTIFIER, TOK_STAR];
           if (exprTokens.indexOf(lookahead) >= 0) {
               return this.expression(rbp);
           } else if (lookahead === TOK_LBRACKET) {
-              this.match(TOK_LBRACKET);
-              return this.parseMultiselectList();
+              this.__match(TOK_LBRACKET);
+              return this.__parseMultiselectList();
           } else if (lookahead === TOK_LBRACE) {
-              this.match(TOK_LBRACE);
-              return this.parseMultiselectHash();
+              this.__match(TOK_LBRACE);
+              return this.__parseMultiselectHash();
           }
       },
 
-      parseProjectionRHS: function(rbp) {
+      __parseProjectionRHS: function(rbp) {
           var right;
-          if (bindingPower[this.lookahead(0)] < 10) {
+          if (bindingPower[this.__lookahead(0)] < 10) {
               right = {type: "Identity"};
-          } else if (this.lookahead(0) === TOK_LBRACKET) {
+          } else if (this.__lookahead(0) === TOK_LBRACKET) {
               right = this.expression(rbp);
-          } else if (this.lookahead(0) === TOK_FILTER) {
+          } else if (this.__lookahead(0) === TOK_FILTER) {
               right = this.expression(rbp);
-          } else if (this.lookahead(0) === TOK_DOT) {
-              this.match(TOK_DOT);
-              right = this.parseDotRHS(rbp);
+          } else if (this.__lookahead(0) === TOK_DOT) {
+              this.__match(TOK_DOT);
+              right = this.__parseDotRHS(rbp);
           } else {
-              var t = this.lookaheadToken(0);
+              var t = this.__lookaheadToken(0);
               var error = new Error("Sytanx error, unexpected token: " +
                                     t.value + "(" + t.type + ")");
               error.name = "ParserError";
@@ -809,42 +809,42 @@
           return right;
       },
 
-      parseMultiselectList: function() {
+      __parseMultiselectList: function() {
           var expressions = [];
-          while (this.lookahead(0) !== TOK_RBRACKET) {
+          while (this.__lookahead(0) !== TOK_RBRACKET) {
               var expression = this.expression(0);
               expressions.push(expression);
-              if (this.lookahead(0) === TOK_COMMA) {
-                  this.match(TOK_COMMA);
-                  if (this.lookahead(0) === TOK_RBRACKET) {
+              if (this.__lookahead(0) === TOK_COMMA) {
+                  this.__match(TOK_COMMA);
+                  if (this.__lookahead(0) === TOK_RBRACKET) {
                     throw new Error("Unexpected token Rbracket");
                   }
               }
           }
-          this.match(TOK_RBRACKET);
+          this.__match(TOK_RBRACKET);
           return {type: "MultiSelectList", children: expressions};
       },
 
-      parseMultiselectHash: function() {
+      __parseMultiselectHash: function() {
         var pairs = [];
         var identifierTypes = [TOK_UNQUOTEDIDENTIFIER, TOK_QUOTEDIDENTIFIER];
         var keyToken, keyName, value, node;
         for (;;) {
-          keyToken = this.lookaheadToken(0);
+          keyToken = this.__lookaheadToken(0);
           if (identifierTypes.indexOf(keyToken.type) < 0) {
             throw new Error("Expecting an identifier token, got: " +
                             keyToken.type);
           }
           keyName = keyToken.value;
-          this.advance();
-          this.match(TOK_COLON);
+          this.__advance();
+          this.__match(TOK_COLON);
           value = this.expression(0);
           node = {type: "KeyValuePair", name: keyName, value: value};
           pairs.push(node);
-          if (this.lookahead(0) === TOK_COMMA) {
-            this.match(TOK_COMMA);
-          } else if (this.lookahead(0) === TOK_RBRACE) {
-            this.match(TOK_RBRACE);
+          if (this.__lookahead(0) === TOK_COMMA) {
+            this.__match(TOK_COMMA);
+          } else if (this.__lookahead(0) === TOK_RBRACE) {
+            this.__match(TOK_RBRACE);
             break;
           }
         }
