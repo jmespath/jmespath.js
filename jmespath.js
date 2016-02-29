@@ -1241,7 +1241,7 @@
         for (var i = 0; i < signature.length; i++) {
             typeMatched = false;
             currentSpec = signature[i].types;
-            actualType = this.getTypeName(args[i]);
+            actualType = this.__getTypeName(args[i]);
             for (var j = 0; j < currentSpec.length; j++) {
                 if (this.__typeMatches(actualType, currentSpec[j], args[i])) {
                     typeMatched = true;
@@ -1282,7 +1282,7 @@
                 }
                 for (var i = 0; i < argValue.length; i++) {
                     if (!this.__typeMatches(
-                            this.getTypeName(argValue[i]), subtype,
+                            this.__getTypeName(argValue[i]), subtype,
                                              argValue[i])) {
                         return false;
                     }
@@ -1293,7 +1293,7 @@
             return actual === expected;
         }
     },
-    getTypeName: function(obj) {
+    __getTypeName: function(obj) {
         switch (Object.prototype.toString.call(obj)) {
             case "[object String]":
               return TYPE_STRING;
@@ -1327,7 +1327,7 @@
     },
 
     __functionReverse: function(resolvedArgs) {
-        var typeName = this.getTypeName(resolvedArgs[0]);
+        var typeName = this.__getTypeName(resolvedArgs[0]);
         if (typeName === TYPE_STRING) {
           var originalStr = resolvedArgs[0];
           var reversedStr = "";
@@ -1401,7 +1401,7 @@
 
     __functionMax: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
-        var typeName = this.getTypeName(resolvedArgs[0][0]);
+        var typeName = this.__getTypeName(resolvedArgs[0][0]);
         if (typeName === TYPE_NUMBER) {
           return Math.max.apply(Math, resolvedArgs[0]);
         } else {
@@ -1421,7 +1421,7 @@
 
     __functionMin: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
-        var typeName = this.getTypeName(resolvedArgs[0][0]);
+        var typeName = this.__getTypeName(resolvedArgs[0][0]);
         if (typeName === TYPE_NUMBER) {
           return Math.min.apply(Math, resolvedArgs[0]);
         } else {
@@ -1449,7 +1449,7 @@
     },
 
     __functionType: function(resolvedArgs) {
-        switch (this.getTypeName(resolvedArgs[0])) {
+        switch (this.__getTypeName(resolvedArgs[0])) {
           case TYPE_NUMBER:
             return "number";
           case TYPE_STRING:
@@ -1488,7 +1488,7 @@
     },
 
     __functionToArray: function(resolvedArgs) {
-        if (this.getTypeName(resolvedArgs[0]) === TYPE_ARRAY) {
+        if (this.__getTypeName(resolvedArgs[0]) === TYPE_ARRAY) {
             return resolvedArgs[0];
         } else {
             return [resolvedArgs[0]];
@@ -1496,7 +1496,7 @@
     },
 
     __functionToString: function(resolvedArgs) {
-        if (this.getTypeName(resolvedArgs[0]) === TYPE_STRING) {
+        if (this.__getTypeName(resolvedArgs[0]) === TYPE_STRING) {
             return resolvedArgs[0];
         } else {
             return JSON.stringify(resolvedArgs[0]);
@@ -1504,7 +1504,7 @@
     },
 
     __functionToNumber: function(resolvedArgs) {
-        var typeName = this.getTypeName(resolvedArgs[0]);
+        var typeName = this.__getTypeName(resolvedArgs[0]);
         var convertedValue;
         if (typeName === TYPE_NUMBER) {
             return resolvedArgs[0];
@@ -1519,7 +1519,7 @@
 
     __functionNotNull: function(resolvedArgs) {
         for (var i = 0; i < resolvedArgs.length; i++) {
-            if (this.getTypeName(resolvedArgs[i]) !== TYPE_NULL) {
+            if (this.__getTypeName(resolvedArgs[i]) !== TYPE_NULL) {
                 return resolvedArgs[i];
             }
         }
@@ -1539,7 +1539,7 @@
         }
         var interpreter = this.interpreter;
         var exprefNode = resolvedArgs[1];
-        var requiredType = this.getTypeName(
+        var requiredType = this.__getTypeName(
             interpreter.visit(exprefNode, sortedArray[0]));
         if ([TYPE_NUMBER, TYPE_STRING].indexOf(requiredType) < 0) {
             throw new Error("TypeError");
@@ -1559,14 +1559,14 @@
         decorated.sort(function(a, b) {
           var exprA = interpreter.visit(exprefNode, a[1]);
           var exprB = interpreter.visit(exprefNode, b[1]);
-          if (that.getTypeName(exprA) !== requiredType) {
+          if (that.__getTypeName(exprA) !== requiredType) {
               throw new Error(
                   "TypeError: expected " + requiredType + ", received " +
-                  that.getTypeName(exprA));
-          } else if (that.getTypeName(exprB) !== requiredType) {
+                  that.__getTypeName(exprA));
+          } else if (that.__getTypeName(exprB) !== requiredType) {
               throw new Error(
                   "TypeError: expected " + requiredType + ", received " +
-                  that.getTypeName(exprB));
+                  that.__getTypeName(exprB));
           }
           if (exprA > exprB) {
             return 1;
@@ -1625,9 +1625,9 @@
       var interpreter = this.interpreter;
       var keyFunc = function(x) {
         var current = interpreter.visit(exprefNode, x);
-        if (allowedTypes.indexOf(that.getTypeName(current)) < 0) {
+        if (allowedTypes.indexOf(that.__getTypeName(current)) < 0) {
           var msg = "TypeError: expected one of " + allowedTypes +
-                    ", received " + that.getTypeName(current);
+                    ", received " + that.__getTypeName(current);
           throw new Error(msg);
         }
         return current;
