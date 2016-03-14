@@ -380,7 +380,7 @@
           this.current++;
           var start = this.current;
           var maxLength = stream.length;
-          var literal;
+          var literal, literalString;
           while(stream[this.current] !== "`" && this.current < maxLength) {
               // You can escape a literal char or you can escape the escape.
               var current = this.current;
@@ -392,7 +392,14 @@
               }
               this.current = current;
           }
-          var literalString = stream.slice(start, this.current).trimLeft();
+          if (typeof String.prototype.trimLeft !== "function") {
+            var trimLeft = function(str) {
+              return str.match(/^\s*(.*)/)[1];
+            };
+            literalString = trimLeft(stream.slice(start, this.current));
+          } else {
+            literalString = stream.slice(start, this.current).trimLeft();
+          }
           literalString = literalString.replace("\\`", "`");
           if (this.looksLikeJSON(literalString)) {
               literal = JSON.parse(literalString);
