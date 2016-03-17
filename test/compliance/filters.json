@@ -276,6 +276,10 @@
         "result": [[{"foo": 2, "bar": 1}]]
       },
       {
+        "expression": "reservations[*].instances[?bar==`1`]",
+        "result": [[{"foo": 2, "bar": 1}]]
+      },
+      {
         "expression": "reservations[].instances[?bar==`1`][]",
         "result": [{"foo": 2, "bar": 1}]
       }
@@ -414,6 +418,14 @@
       ]
     },
     "cases": [
+      {
+        "comment": "Unary filter expression",
+        "expression": "foo[?key]",
+        "result": [
+          {"key": true}, {"key": [0]}, {"key": {"a": "b"}},
+          {"key": 0}, {"key": 1}
+        ]
+      },
       {
         "comment": "Unary not filter expression",
         "expression": "foo[?!key]",
