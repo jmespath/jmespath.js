@@ -1,7 +1,7 @@
 {
   "name": "@trax/jmespath",
   "description": "JMESPath implementation in javascript",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "author": {
     "name": "James Saryerwinnie",
     "email": "js@jamesls.com",
