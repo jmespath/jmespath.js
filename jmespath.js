@@ -3,7 +3,7 @@
 
   function isArray(obj) {
     if (obj !== null) {
-      return toString.call(obj) === "[object Array]";
+      return Object.prototype.toString.call(obj) === "[object Array]";
     } else {
       return false;
     }
@@ -11,7 +11,7 @@
 
   function isObject(obj) {
     if (obj !== null) {
-      return toString.call(obj) === "[object Object]";
+      return Object.prototype.toString.call(obj) === "[object Object]";
     } else {
       return false;
     }
@@ -24,8 +24,8 @@
     }
 
     // Check if they are the same type.
-    var firstType = toString.call(first);
-    if (firstType !== toString.call(second)) {
+    var firstType = Object.prototype.toString.call(first);
+    if (firstType !== Object.prototype.toString.call(second)) {
       return false;
     }
     // We know that first and second have the same type so we can just check the
@@ -117,6 +117,19 @@
       }
       return merged;
   }
+
+
+  // Type constants used to define functions.
+  var TYPE_NUMBER = 0;
+  var TYPE_ANY = 1;
+  var TYPE_STRING = 2;
+  var TYPE_ARRAY = 3;
+  var TYPE_OBJECT = 4;
+  var TYPE_BOOLEAN = 5;
+  var TYPE_EXPREF = 6;
+  var TYPE_NULL = 7;
+  var TYPE_ARRAY_NUMBER = 8;
+  var TYPE_ARRAY_STRING = 9;
 
 
   // The "&", "[", "<", ">" tokens
@@ -304,7 +317,8 @@
               this.current = current;
           }
           this.current++;
-          return stream.slice(start + 1, this.current - 1);
+          var literal = stream.slice(start + 1, this.current - 1);
+          return literal.replace("\\'", "'");
       },
 
       consumeNumber: function(stream) {
@@ -454,7 +468,7 @@
           "NE": 5,
           "Flatten": 9,
           "Star": 20,
-          "Filter": 20,
+          "Filter": 21,
           "Dot": 40,
           "Not": 45,
           "Lbrace": 50,
@@ -489,17 +503,11 @@
       expression: function(rbp) {
           var leftToken = this.lookaheadToken(0);
           this.advance();
-          var name = "nud" + leftToken.type;
-          var nudMethod = this[name] || this.errorToken;
-          var left = nudMethod.call(this, leftToken);
+          var left = this.nud(leftToken);
           var currentToken = this.lookahead(0);
           while (rbp < this.bindingPower[currentToken]) {
-              var ledMethod = this["led" + currentToken];
-              if (ledMethod === undefined) {
-                  this.errorToken(this.lookaheadToken(0));
-              }
               this.advance();
-              left = ledMethod.call(this, left);
+              left = this.led(currentToken, left);
               currentToken = this.lookahead(0);
           }
           return left;
@@ -515,6 +523,163 @@
 
       advance: function() {
           this.index++;
+      },
+
+      nud: function(token) {
+        var left;
+        var right;
+        var expression;
+        switch (token.type) {
+          case "Literal":
+            return {type: "Literal", value: token.value};
+          case "UnquotedIdentifier":
+            return {type: "Field", name: token.value};
+          case "QuotedIdentifier":
+            var node = {type: "Field", name: token.value};
+            if (this.lookahead(0) === "Lparen") {
+                throw new Error("Quoted identifier not allowed for function names.");
+            } else {
+                return node;
+            }
+            break;
+          case "Not":
+            right = this.expression(this.bindingPower.Not);
+            return {type: "NotExpression", children: [right]};
+          case "Star":
+            left = {type: "Identity"};
+            right = null;
+            if (this.lookahead(0) === "Rbracket") {
+                // This can happen in a multiselect,
+                // [a, b, *]
+                right = {type: "Identity"};
+            } else {
+                right = this.parseProjectionRHS(this.bindingPower.Star);
+            }
+            return {type: "ValueProjection", children: [left, right]};
+          case "Filter":
+            return this.led(token.type, {type: "Identity"});
+          case "Lbrace":
+            return this.parseMultiselectHash();
+          case "Flatten":
+            left = {type: "Flatten", children: [{type: "Identity"}]};
+            right = this.parseProjectionRHS(this.bindingPower.Flatten);
+            return {type: "Projection", children: [left, right]};
+          case "Lbracket":
+            if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
+                right = this.parseIndexExpression();
+                return this.projectIfSlice({type: "Identity"}, right);
+            } else if (this.lookahead(0) === "Star" &&
+                       this.lookahead(1) === "Rbracket") {
+                this.advance();
+                this.advance();
+                right = this.parseProjectionRHS(this.bindingPower.Star);
+                return {type: "Projection",
+                        children: [{type: "Identity"}, right]};
+            } else {
+                return this.parseMultiselectList();
+            }
+            break;
+          case "Current":
+            return {type: "Current"};
+          case "Expref":
+            expression = this.expression(this.bindingPower.Expref);
+            return {type: "ExpressionReference", children: [expression]};
+          case "Lparen":
+            var args = [];
+            while (this.lookahead(0) !== "Rparen") {
+              if (this.lookahead(0) === "Current") {
+                expression = {type: "Current"};
+                this.advance();
+              } else {
+                expression = this.expression(0);
+              }
+              args.push(expression);
+            }
+            this.match("Rparen");
+            return args[0];
+          default:
+            this.errorToken(token);
+        }
+      },
+
+      led: function(tokenName, left) {
+        var right;
+        switch(tokenName) {
+          case "Dot":
+            var rbp = this.bindingPower.Dot;
+            if (this.lookahead(0) !== "Star") {
+                right = this.parseDotRHS(rbp);
+                return {type: "Subexpression", children: [left, right]};
+            } else {
+                // Creating a projection.
+                this.advance();
+                right = this.parseProjectionRHS(rbp);
+                return {type: "ValueProjection", children: [left, right]};
+            }
+            break;
+          case "Pipe":
+            right = this.expression(this.bindingPower.Pipe);
+            return {type: "Pipe", children: [left, right]};
+          case "Or":
+            right = this.expression(this.bindingPower.Or);
+            return {type: "OrExpression", children: [left, right]};
+          case "And":
+            right = this.expression(this.bindingPower.And);
+            return {type: "AndExpression", children: [left, right]};
+          case "Lparen":
+            var name = left.name;
+            var args = [];
+            var expression, node;
+            while (this.lookahead(0) !== "Rparen") {
+              if (this.lookahead(0) === "Current") {
+                expression = {type: "Current"};
+                this.advance();
+              } else {
+                expression = this.expression(0);
+              }
+              if (this.lookahead(0) === "Comma") {
+                this.match("Comma");
+              }
+              args.push(expression);
+            }
+            this.match("Rparen");
+            node = {type: "Function", name: name, children: args};
+            return node;
+          case "Filter":
+            var condition = this.expression(0);
+            this.match("Rbracket");
+            if (this.lookahead(0) === "Flatten") {
+              right = {type: "Identity"};
+            } else {
+              right = this.parseProjectionRHS(this.bindingPower.Filter);
+            }
+            return {type: "FilterProjection", children: [left, right, condition]};
+          case "Flatten":
+            var leftNode = {type: "Flatten", children: [left]};
+            var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
+            return {type: "Projection", children: [leftNode, rightNode]};
+          case "EQ":
+          case "NE":
+          case "GT":
+          case "GTE":
+          case "LT":
+          case "LTE":
+            return this.parseComparator(left, tokenName);
+          case "Lbracket":
+            var token = this.lookaheadToken(0);
+            if (token.type === "Number" || token.type === "Colon") {
+                right = this.parseIndexExpression();
+                return this.projectIfSlice(left, right);
+            } else {
+                this.match("Star");
+                this.match("Rbracket");
+                right = this.parseProjectionRHS(this.bindingPower.Star);
+                return {type: "Projection", children: [left, right]};
+            }
+            break;
+          default:
+            this.errorToken(this.lookaheadToken(0));
+        }
       },
 
       match: function(tokenType) {
@@ -539,83 +704,6 @@
           throw error;
       },
 
-      nudLiteral: function(token) {
-          return {type: "Literal", value: token.value};
-      },
-
-      nudUnquotedIdentifier: function(token) {
-          return {type: "Field", name: token.value};
-      },
-
-      nudExpref: function() {
-        var expression = this.expression(this.bindingPower.Expref);
-        return {type: "ExpressionReference", children: [expression]};
-      },
-
-      nudQuotedIdentifier: function(token) {
-          var node = {type: "Field", name: token.value};
-          if (this.lookahead(0) === "Lparen") {
-            var error = new Error("Quoted identifier not allowed for function names.");
-            error.lineNumber = token.start;
-              throw error;
-          } else {
-              return node;
-          }
-      },
-
-      nudNot: function() {
-        var right = this.expression(this.bindingPower.Not);
-        return {type: "NotExpression", children: [right]};
-      },
-
-      ledOr: function(left) {
-        var right = this.expression(this.bindingPower.Or);
-        return {type: "OrExpression", children: [left, right]};
-      },
-
-      ledAnd: function(left) {
-        var right = this.expression(this.bindingPower.And);
-        return {type: "AndExpression", children: [left, right]};
-      },
-
-      ledPipe: function(left) {
-          var right = this.expression(this.bindingPower.Pipe);
-          return {type: "Pipe", children: [left, right]};
-      },
-
-      nudStar: function() {
-          var left = {type: "Identity"};
-          var right = null;
-          if (this.lookahead(0) === "Rbracket") {
-              // This can happen in a multiselect,
-              // [a, b, *]
-              right = {type: "Identity"};
-          } else {
-              right = this.parseProjectionRHS(this.bindingPower.Star);
-          }
-          return {type: "ValueProjection", children: [left, right]};
-      },
-
-      nudCurrent: function() {
-          return {type: "Current"};
-      },
-
-      nudLbracket: function() {
-          var right;
-          if (this.lookahead(0) === "Number" || this.lookahead(0) === "Colon") {
-              right = this.parseIndexExpression();
-              return this.projectIfSlice({type: "Identity"}, right);
-          } else if (this.lookahead(0) === "Star" &&
-                     this.lookahead(1) === "Rbracket") {
-              this.advance();
-              this.advance();
-              right = this.parseProjectionRHS(this.bindingPower.Star);
-              return {type: "Projection",
-                      children: [{type: "Identity"}, right]};
-          } else {
-              return this.parseMultiselectList();
-          }
-      },
 
       parseIndexExpression: function() {
           if (this.lookahead(0) === "Colon" || this.lookahead(1) === "Colon") {
@@ -672,130 +760,9 @@
           };
       },
 
-      nudLbrace: function() {
-          return this.parseMultiselectHash();
-      },
-
-      ledDot: function(left) {
-          var rbp = this.bindingPower.Dot;
-          var right;
-          if (this.lookahead(0) !== "Star") {
-              right = this.parseDotRHS(rbp);
-              return {type: "Subexpression", children: [left, right]};
-          } else {
-              // Creating a projection.
-              this.advance();
-              right = this.parseProjectionRHS(rbp);
-              return {type: "ValueProjection", children: [left, right]};
-          }
-      },
-
-      nudFilter: function() {
-        return this.ledFilter({type: "Identity"});
-      },
-
-      ledFilter: function(left) {
-        var condition = this.expression(0);
-        var right;
-        this.match("Rbracket");
-        if (this.lookahead(0) === "Flatten") {
-          right = {type: "Identity"};
-        } else {
-          right = this.parseProjectionRHS(this.bindingPower.Filter);
-        }
-        return {type: "FilterProjection", children: [left, right, condition]};
-      },
-
-      ledEQ: function(left) {
-        return this.parseComparator(left, "EQ");
-      },
-
-      ledNE: function(left) {
-        return this.parseComparator(left, "NE");
-      },
-
-      ledGT: function(left) {
-        return this.parseComparator(left, "GT");
-      },
-
-      ledGTE: function(left) {
-        return this.parseComparator(left, "GTE");
-      },
-
-      ledLT: function(left) {
-        return this.parseComparator(left, "LT");
-      },
-
-      ledLTE: function(left) {
-        return this.parseComparator(left, "LTE");
-      },
-
       parseComparator: function(left, comparator) {
         var right = this.expression(this.bindingPower[comparator]);
         return {type: "Comparator", name: comparator, children: [left, right]};
-      },
-
-      ledLbracket: function(left) {
-          var token = this.lookaheadToken(0);
-          var right;
-          if (token.type === "Number" || token.type === "Colon") {
-              right = this.parseIndexExpression();
-              return this.projectIfSlice(left, right);
-          } else {
-              this.match("Star");
-              this.match("Rbracket");
-              right = this.parseProjectionRHS(this.bindingPower.Star);
-              return {type: "Projection", children: [left, right]};
-          }
-      },
-
-      nudFlatten: function() {
-          var left = {type: "Flatten", children: [{type: "Identity"}]};
-          var right = this.parseProjectionRHS(this.bindingPower.Flatten);
-          return {type: "Projection", children: [left, right]};
-      },
-
-      ledFlatten: function(left) {
-          var leftNode = {type: "Flatten", children: [left]};
-          var rightNode = this.parseProjectionRHS(this.bindingPower.Flatten);
-          return {type: "Projection", children: [leftNode, rightNode]};
-      },
-
-      nudLparen: function() {
-        var args = [];
-        var expression;
-        while (this.lookahead(0) !== "Rparen") {
-          if (this.lookahead(0) === "Current") {
-            expression = {type: "Current"};
-            this.advance();
-          } else {
-            expression = this.expression(0);
-          }
-          args.push(expression);
-        }
-        this.match("Rparen");
-        return args[0];
-      },
-
-      ledLparen: function(left) {
-        var name = left.name;
-        var args = [];
-        var expression, node;
-        while (this.lookahead(0) !== "Rparen") {
-          if (this.lookahead(0) === "Current") {
-            expression = {type: "Current"};
-            this.advance();
-          } else {
-            expression = this.expression(0);
-          }
-          if (this.lookahead(0) === "Comma") {
-            this.match("Comma");
-          }
-          args.push(expression);
-        }
-        this.match("Rparen");
-        node = {type: "Function", name: name, children: args};
-        return node;
       },
 
       parseDotRHS: function(rbp) {
@@ -917,87 +884,224 @@
       },
 
       visit: function(node, value) {
-          var visitMethod = this["visit" + node.type];
-          if (visitMethod === undefined) {
+          var matched, current, result, first, second, field, left, right, collected, i;
+          switch (node.type) {
+            case "Field":
+              if (value === null ) {
+                  return null;
+              } else if (isObject(value)) {
+                  field = value[node.name];
+                  if (field === undefined) {
+                    // If the field is not defined in the current scope,
+                    // fall back to the scope chain.
+                    return this.scopeChain.resolveReference(node.name);
+                  } else {
+                      return field;
+                  }
+              } else {
+                value = this.scopeChain.resolveReference(node.name);
+                if(value !== null && typeof value !== 'undefined') {
+                  return value;
+                }
+                return null;
+              }
+              break;
+            case "Subexpression":
+              result = this.visit(node.children[0], value);
+              for (i = 1; i < node.children.length; i++) {
+                  result = this.visit(node.children[1], result);
+                  if (result === null) {
+                      return null;
+                  }
+              }
+              return result;
+            case "IndexExpression":
+              left = this.visit(node.children[0], value);
+              right = this.visit(node.children[1], left);
+              return right;
+            case "Index":
+              if (!isArray(value)) {
+                return null;
+              }
+              var index = node.value;
+              if (index < 0) {
+                index = value.length + index;
+              }
+              result = value[index];
+              if (result === undefined) {
+                result = null;
+              }
+              return result;
+            case "Slice":
+              if (!isArray(value)) {
+                return null;
+              }
+              var sliceParams = node.children.slice(0);
+              var computed = this.computeSliceParams(value.length, sliceParams);
+              var start = computed[0];
+              var stop = computed[1];
+              var step = computed[2];
+              result = [];
+              if (step > 0) {
+                  for (i = start; i < stop; i += step) {
+                      result.push(value[i]);
+                  }
+              } else {
+                  for (i = start; i > stop; i += step) {
+                      result.push(value[i]);
+                  }
+              }
+              return result;
+            case "Projection":
+              // Evaluate left child.
+              var base = this.visit(node.children[0], value);
+              if (!isArray(base)) {
+                return null;
+              }
+              collected = [];
+              for (i = 0; i < base.length; i++) {
+                current = this.visit(node.children[1], base[i]);
+                if (current !== null) {
+                  collected.push(current);
+                }
+              }
+              return collected;
+            case "ValueProjection":
+              // Evaluate left child.
+              base = this.visit(node.children[0], value);
+              if (!isObject(base)) {
+                return null;
+              }
+              collected = [];
+              var values = objValues(base);
+              for (i = 0; i < values.length; i++) {
+                current = this.visit(node.children[1], values[i]);
+                if (current !== null) {
+                  collected.push(current);
+                }
+              }
+              return collected;
+            case "FilterProjection":
+              base = this.visit(node.children[0], value);
+              if (!isArray(base)) {
+                return null;
+              }
+              var filtered = [];
+              var finalResults = [];
+              for (i = 0; i < base.length; i++) {
+                matched = this.visit(node.children[2], base[i]);
+                if (!isFalse(matched)) {
+                  filtered.push(base[i]);
+                }
+              }
+              for (var j = 0; j < filtered.length; j++) {
+                current = this.visit(node.children[1], filtered[j]);
+                if (current !== null) {
+                  finalResults.push(current);
+                }
+              }
+              return finalResults;
+            case "Comparator":
+              first = this.visit(node.children[0], value);
+              second = this.visit(node.children[1], value);
+              switch(node.name) {
+                case "EQ":
+                  result = strictDeepEqual(first, second);
+                  break;
+                case "NE":
+                  result = !strictDeepEqual(first, second);
+                  break;
+                case "GT":
+                  result = first > second;
+                  break;
+                case "GTE":
+                  result = first >= second;
+                  break;
+                case "LT":
+                  result = first < second;
+                  break;
+                case "LTE":
+                  result = first <= second;
+                  break;
+                default:
+                  throw new Error("Unknown comparator: " + node.name);
+              }
+              return result;
+            case "Flatten":
+              var original = this.visit(node.children[0], value);
+              if (!isArray(original)) {
+                return null;
+              }
+              var merged = [];
+              for (i = 0; i < original.length; i++) {
+                current = original[i];
+                if (isArray(current)) {
+                  merged.push.apply(merged, current);
+                } else {
+                  merged.push(current);
+                }
+              }
+              return merged;
+            case "Identity":
+              return value;
+            case "MultiSelectList":
+              if (value === null) {
+                return null;
+              }
+              collected = [];
+              for (i = 0; i < node.children.length; i++) {
+                  collected.push(this.visit(node.children[i], value));
+              }
+              return collected;
+            case "MultiSelectHash":
+              if (value === null) {
+                return null;
+              }
+              collected = {};
+              var child;
+              for (i = 0; i < node.children.length; i++) {
+                child = node.children[i];
+                collected[child.name] = this.visit(child.value, value);
+              }
+              return collected;
+            case "OrExpression":
+              matched = this.visit(node.children[0], value);
+              if (isFalse(matched)) {
+                  matched = this.visit(node.children[1], value);
+              }
+              return matched;
+            case "AndExpression":
+              first = this.visit(node.children[0], value);
+              if (isFalse(first) === true) {
+                return first;
+              }
+              return this.visit(node.children[1], value);
+            case "NotExpression":
+              first = this.visit(node.children[0], value);
+              return isFalse(first);
+            case "Literal":
+              return node.value;
+            case "Pipe":
+              left = this.visit(node.children[0], value);
+              return this.visit(node.children[1], left);
+            case "Current":
+              return value;
+            case "Function":
+              var resolvedArgs = [];
+              for (i = 0; i < node.children.length; i++) {
+                  resolvedArgs.push(this.visit(node.children[i], value));
+              }
+              return this.runtime.callFunction(node.name, resolvedArgs);
+            case "ExpressionReference":
+              var refNode = node.children[0];
+              // Tag the node with a specific attribute so the type
+              // checker verify the type.
+              refNode.jmespathType = "Expref";
+              refNode.context = value;
+              return refNode;
+            default:
               throw new Error("Unknown node type: " + node.type);
           }
-          return visitMethod.call(this, node, value);
-      },
-
-      visitField: function(node, value) {
-          if (value === null ) {
-              return null;
-          } else if (isObject(value)) {
-              var field = value[node.name];
-              if (field === undefined) {
-                  // If the field is not defined in the current scope,
-                  // fall back to the scope chain.
-                  return this.scopeChain.resolveReference(node.name);
-              } else {
-                  return field;
-              }
-          } else {
-            value = this.scopeChain.resolveReference(node.name);
-            if(value !== null && typeof value !== 'undefined') {
-              return value;
-            }
-            return null;
-          }
-      },
-
-      visitSubexpression: function(node, value) {
-          var result = this.visit(node.children[0], value);
-          for (var i = 1; i < node.children.length; i++) {
-              result = this.visit(node.children[1], result);
-              if (result === null) {
-                  return null;
-              }
-          }
-          return result;
-      },
-
-      visitIndexExpression: function(node, value) {
-        var left = this.visit(node.children[0], value);
-        var right = this.visit(node.children[1], left);
-        return right;
-      },
-
-      visitIndex: function(node, value) {
-        if (!isArray(value)) {
-          return null;
-        }
-        var index = node.value;
-        if (index < 0) {
-          index = value.length + index;
-        }
-        var result = value[index];
-        if (result === undefined) {
-          result = null;
-        }
-        return result;
-      },
-
-      visitSlice: function(node, value) {
-        if (!isArray(value)) {
-          return null;
-        }
-        var sliceParams = node.children.slice(0);
-        var computed = this.computeSliceParams(value.length, sliceParams);
-        var start = computed[0];
-        var stop = computed[1];
-        var step = computed[2];
-        var result = [];
-        var i;
-        if (step > 0) {
-            for (i = start; i < stop; i += step) {
-                result.push(value[i]);
-            }
-        } else {
-            for (i = start; i > stop; i += step) {
-                result.push(value[i]);
-            }
-        }
-        return result;
       },
 
       computeSliceParams: function(arrayLength, sliceParams) {
@@ -1041,189 +1145,8 @@
               actualValue = step < 0 ? arrayLength - 1 : arrayLength;
           }
           return actualValue;
-      },
-
-      visitProjection: function(node, value) {
-        // Evaluate left child.
-        var base = this.visit(node.children[0], value);
-        if (!isArray(base)) {
-          return null;
-        }
-        var collected = [];
-        for (var i = 0; i < base.length; i++) {
-          var current = this.visit(node.children[1], base[i]);
-          if (current !== null) {
-            collected.push(current);
-          }
-        }
-        return collected;
-      },
-
-      visitValueProjection: function(node, value) {
-        // Evaluate left child.
-        var base = this.visit(node.children[0], value);
-        if (!isObject(base)) {
-          return null;
-        }
-        var collected = [];
-        var values = objValues(base);
-        for (var i = 0; i < values.length; i++) {
-          var current = this.visit(node.children[1], values[i]);
-          if (current !== null) {
-            collected.push(current);
-          }
-        }
-        return collected;
-      },
-
-      visitFilterProjection: function(node, value) {
-        var base = this.visit(node.children[0], value);
-        if (!isArray(base)) {
-          return null;
-        }
-        var filtered = [];
-        var finalResults = [];
-        var matched, current;
-        for (var i = 0; i < base.length; i++) {
-          matched = this.visit(node.children[2], base[i]);
-          if (matched === true) {
-            filtered.push(base[i]);
-          }
-        }
-        for (var j = 0; j < filtered.length; j++) {
-          current = this.visit(node.children[1], filtered[j]);
-          if (current !== null) {
-            finalResults.push(current);
-          }
-        }
-        return finalResults;
-      },
-
-      visitComparator: function(node, value) {
-        var first = this.visit(node.children[0], value);
-        var second = this.visit(node.children[1], value);
-        var result;
-        switch(node.name) {
-          case "EQ":
-            result = strictDeepEqual(first, second);
-            break;
-          case "NE":
-            result = !strictDeepEqual(first, second);
-            break;
-          case "GT":
-            result = first > second;
-            break;
-          case "GTE":
-            result = first >= second;
-            break;
-          case "LT":
-            result = first < second;
-            break;
-          case "LTE":
-            result = first <= second;
-            break;
-          default:
-            throw new Error("Unknown comparator: " + node.name);
-        }
-        return result;
-      },
-
-      visitFlatten: function(node, value) {
-        var original = this.visit(node.children[0], value);
-        if (!isArray(original)) {
-          return null;
-        }
-        var merged = [];
-        for (var i = 0; i < original.length; i++) {
-          var current = original[i];
-          if (isArray(current)) {
-            merged.push.apply(merged, current);
-          } else {
-            merged.push(current);
-          }
-        }
-        return merged;
-      },
-
-      visitIdentity: function(node, value) {
-        return value;
-      },
-
-      visitMultiSelectList: function(node, value) {
-        if (value === null) {
-          return null;
-        }
-        var collected = [];
-        for (var i = 0; i < node.children.length; i++) {
-            collected.push(this.visit(node.children[i], value));
-        }
-        return collected;
-      },
-
-      visitMultiSelectHash: function(node, value) {
-        if (value === null) {
-          return null;
-        }
-        var collected = {};
-        var child;
-        for (var i = 0; i < node.children.length; i++) {
-          child = node.children[i];
-          collected[child.name] = this.visit(child.value, value);
-        }
-        return collected;
-      },
-
-      visitOrExpression: function(node, value) {
-        var matched = this.visit(node.children[0], value);
-        if (isFalse(matched)) {
-            matched = this.visit(node.children[1], value);
-        }
-        return matched;
-      },
-
-      visitAndExpression: function(node, value) {
-        var first = this.visit(node.children[0], value);
-
-        if (isFalse(first) === true) {
-          return first;
-        }
-        return this.visit(node.children[1], value);
-      },
-
-      visitNotExpression: function(node, value) {
-        var first = this.visit(node.children[0], value);
-        return isFalse(first);
-      },
-
-      visitLiteral: function(node) {
-          return node.value;
-      },
-
-      visitPipe: function(node, value) {
-        var left = this.visit(node.children[0], value);
-        return this.visit(node.children[1], left);
-      },
-
-      visitCurrent: function(node, value) {
-          return value;
-      },
-
-      visitFunction: function(node, value) {
-        var resolvedArgs = [];
-        for (var i = 0; i < node.children.length; i++) {
-            resolvedArgs.push(this.visit(node.children[i], value));
-        }
-        return this.runtime.callFunction(node.name, resolvedArgs);
-      },
-
-      visitExpressionReference: function(node, value) {
-        var refNode = node.children[0];
-        // Tag the node with a specific attribute so the type
-        // checker verify the type.
-        refNode.jmespathType = "Expref";
-        refNode.context = value;
-        return refNode;
       }
+
   };
 
   function Runtime(interpreter, scopeChain, options) {
@@ -1244,71 +1167,72 @@
         // types.  If the type is "any" then no type checking
         // occurs on the argument.  Variadic is optional
         // and if not provided is assumed to be false.
-        abs: {func: this.functionAbs, signature: [{types: ["number"]}]},
-        avg: {func: this.functionAvg, signature: [{types: ["array-number"]}]},
-        ceil: {func: this.functionCeil, signature: [{types: ["number"]}]},
+        abs: {func: this.functionAbs, signature: [{types: [TYPE_NUMBER]}]},
+        avg: {func: this.functionAvg, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
+        ceil: {func: this.functionCeil, signature: [{types: [TYPE_NUMBER]}]},
         contains: {
             func: this.functionContains,
-            signature: [{types: ["string", "array"]}, {types: ["any"]}]},
+            signature: [{types: [TYPE_STRING, TYPE_ARRAY]},
+                        {types: [TYPE_ANY]}]},
         "ends_with": {
             func: this.functionEndsWith,
-            signature: [{types: ["string"]}, {types: ["string"]}]},
-        floor: {func: this.functionFloor, signature: [{types: ["number"]}]},
+            signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
+        floor: {func: this.functionFloor, signature: [{types: [TYPE_NUMBER]}]},
         length: {
             func: this.functionLength,
-            signature: [{types: ["string", "array", "object"]}]},
+            signature: [{types: [TYPE_STRING, TYPE_ARRAY, TYPE_OBJECT]}]},
         let: {
             func: this.functionLet,
-            signature: [{types: ["object"]}, {"types": ["expref"]}]},
+            signature: [{types: [TYPE_OBJECT]}, {types: [TYPE_EXPREF]}]},
         map: {
             func: this.functionMap,
-            signature: [{types: ["expref"]}, {types: ["array"]}]},
+            signature: [{types: [TYPE_EXPREF]}, {types: [TYPE_ARRAY]}]},
         max: {
             func: this.functionMax,
-            signature: [{types: ["array-number", "array-string"]}]},
+            signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
         "merge": {
             func: this.functionMerge,
-            signature: [{types: ["object"], variadic: true}]
+            signature: [{types: [TYPE_OBJECT], variadic: true}]
         },
         "max_by": {
           func: this.functionMaxBy,
-          signature: [{types: ["array"]}, {types: ["expref"]}]
+          signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
-        sum: {func: this.functionSum, signature: [{types: ["array-number"]}]},
+        sum: {func: this.functionSum, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
         "starts_with": {
             func: this.functionStartsWith,
-            signature: [{types: ["string"]}, {types: ["string"]}]},
+            signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
         min: {
             func: this.functionMin,
-            signature: [{types: ["array-number", "array-string"]}]},
+            signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
         "min_by": {
           func: this.functionMinBy,
-          signature: [{types: ["array"]}, {types: ["expref"]}]
+          signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
-        type: {func: this.functionType, signature: [{types: ["any"]}]},
-        keys: {func: this.functionKeys, signature: [{types: ["object"]}]},
-        values: {func: this.functionValues, signature: [{types: ["object"]}]},
-        sort: {func: this.functionSort, signature: [{types: ["array-string", "array-number"]}]},
+        type: {func: this.functionType, signature: [{types: [TYPE_ANY]}]},
+        keys: {func: this.functionKeys, signature: [{types: [TYPE_OBJECT]}]},
+        values: {func: this.functionValues, signature: [{types: [TYPE_OBJECT]}]},
+        sort: {func: this.functionSort, signature: [{types: [TYPE_ARRAY_STRING, TYPE_ARRAY_NUMBER]}]},
         "sort_by": {
           func: this.functionSortBy,
-          signature: [{types: ["array"]}, {types: ["expref"]}]
+          signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
         join: {
             func: this.functionJoin,
             signature: [
-                {types: ["string"]},
-                {types: ["array-string"]}
+                {types: [TYPE_STRING]},
+                {types: [TYPE_ARRAY_STRING]}
             ]
         },
         reverse: {
             func: this.functionReverse,
-            signature: [{types: ["string", "array"]}]},
-        "to_array": {func: this.functionToArray, signature: [{types: ["any"]}]},
-        "to_string": {func: this.functionToString, signature: [{types: ["any"]}]},
-        "to_number": {func: this.functionToNumber, signature: [{types: ["any"]}]},
+            signature: [{types: [TYPE_STRING, TYPE_ARRAY]}]},
+        "to_array": {func: this.functionToArray, signature: [{types: [TYPE_ANY]}]},
+        "to_string": {func: this.functionToString, signature: [{types: [TYPE_ANY]}]},
+        "to_number": {func: this.functionToNumber, signature: [{types: [TYPE_ANY]}]},
         "not_null": {
             func: this.functionNotNull,
-            signature: [{types: ["any"], variadic: true}]
+            signature: [{types: [TYPE_ANY], variadic: true}]
         }
     };
   }
@@ -1370,20 +1294,27 @@
     },
 
     typeMatches: function(actual, expected, argValue) {
-        if (expected === "any") {
+        if (expected === TYPE_ANY) {
             return true;
         }
-        if (expected.indexOf("array") === 0) {
+        if (expected === TYPE_ARRAY_STRING ||
+            expected === TYPE_ARRAY_NUMBER ||
+            expected === TYPE_ARRAY) {
             // The expected type can either just be array,
             // or it can require a specific subtype (array of numbers).
             //
             // The simplest case is if "array" with no subtype is specified.
-            if (expected === "array") {
-                return actual.indexOf("array") === 0;
-            } else if (actual.indexOf("array") === 0) {
+            if (expected === TYPE_ARRAY) {
+                return actual === TYPE_ARRAY;
+            } else if (actual === TYPE_ARRAY) {
                 // Otherwise we need to check subtypes.
                 // I think this has potential to be improved.
-                var subtype = expected.split("-")[1];
+                var subtype;
+                if (expected === TYPE_ARRAY_NUMBER) {
+                  subtype = TYPE_NUMBER;
+                } else if (expected === TYPE_ARRAY_STRING) {
+                  subtype = TYPE_STRING;
+                }
                 for (var i = 0; i < argValue.length; i++) {
                     if (!this.typeMatches(
                             this.getTypeName(argValue[i]), subtype,
@@ -1398,24 +1329,24 @@
         }
     },
     getTypeName: function(obj) {
-        switch (toString.call(obj)) {
+        switch (Object.prototype.toString.call(obj)) {
             case "[object String]":
-              return "string";
+              return TYPE_STRING;
             case "[object Number]":
-              return "number";
+              return TYPE_NUMBER;
             case "[object Array]":
-              return "array";
+              return TYPE_ARRAY;
             case "[object Boolean]":
-              return "boolean";
+              return TYPE_BOOLEAN;
             case "[object Null]":
-              return "null";
+              return TYPE_NULL;
             case "[object Object]":
               // Check if it's an expref.  If it has, it's been
               // tagged with a jmespathType attr of 'Expref';
               if (obj.jmespathType === "Expref") {
-                return "expref";
+                return TYPE_EXPREF;
               } else {
-                return "object";
+                return TYPE_OBJECT;
               }
         }
     },
@@ -1432,7 +1363,7 @@
 
     functionReverse: function(resolvedArgs) {
         var typeName = this.getTypeName(resolvedArgs[0]);
-        if (typeName === "string") {
+        if (typeName === TYPE_STRING) {
           var originalStr = resolvedArgs[0];
           var reversedStr = "";
           for (var i = originalStr.length - 1; i >= 0; i--) {
@@ -1506,7 +1437,7 @@
     functionMax: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
         var typeName = this.getTypeName(resolvedArgs[0][0]);
-        if (typeName === "number") {
+        if (typeName === TYPE_NUMBER) {
           return Math.max.apply(Math, resolvedArgs[0]);
         } else {
           var elements = resolvedArgs[0];
@@ -1526,7 +1457,7 @@
     functionMin: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
         var typeName = this.getTypeName(resolvedArgs[0][0]);
-        if (typeName === "number") {
+        if (typeName === TYPE_NUMBER) {
           return Math.min.apply(Math, resolvedArgs[0]);
         } else {
           var elements = resolvedArgs[0];
@@ -1553,7 +1484,22 @@
     },
 
     functionType: function(resolvedArgs) {
-        return this.getTypeName(resolvedArgs[0]);
+        switch (this.getTypeName(resolvedArgs[0])) {
+          case TYPE_NUMBER:
+            return "number";
+          case TYPE_STRING:
+            return "string";
+          case TYPE_ARRAY:
+            return "array";
+          case TYPE_OBJECT:
+            return "object";
+          case TYPE_BOOLEAN:
+            return "boolean";
+          case TYPE_EXPREF:
+            return "expref";
+          case TYPE_NULL:
+            return "null";
+        }
     },
 
     functionKeys: function(resolvedArgs) {
@@ -1577,7 +1523,7 @@
     },
 
     functionToArray: function(resolvedArgs) {
-        if (this.getTypeName(resolvedArgs[0]) === "array") {
+        if (this.getTypeName(resolvedArgs[0]) === TYPE_ARRAY) {
             return resolvedArgs[0];
         } else {
             return [resolvedArgs[0]];
@@ -1585,7 +1531,7 @@
     },
 
     functionToString: function(resolvedArgs) {
-        if (this.getTypeName(resolvedArgs[0]) === "string") {
+        if (this.getTypeName(resolvedArgs[0]) === TYPE_STRING) {
             return resolvedArgs[0];
         } else {
             return JSON.stringify(resolvedArgs[0]);
@@ -1595,9 +1541,9 @@
     functionToNumber: function(resolvedArgs) {
         var typeName = this.getTypeName(resolvedArgs[0]);
         var convertedValue;
-        if (typeName === "number") {
+        if (typeName === TYPE_NUMBER) {
             return resolvedArgs[0];
-        } else if (typeName === "string") {
+        } else if (typeName === TYPE_STRING) {
             convertedValue = +resolvedArgs[0];
             if (!isNaN(convertedValue)) {
                 return convertedValue;
@@ -1608,7 +1554,7 @@
 
     functionNotNull: function(resolvedArgs) {
         for (var i = 0; i < resolvedArgs.length; i++) {
-            if (this.getTypeName(resolvedArgs[i]) !== "null") {
+            if (this.getTypeName(resolvedArgs[i]) !== TYPE_NULL) {
                 return resolvedArgs[i];
             }
         }
@@ -1630,7 +1576,7 @@
         var exprefNode = resolvedArgs[1];
         var requiredType = this.getTypeName(
             interpreter.visit(exprefNode, sortedArray[0]));
-        if (["number", "string"].indexOf(requiredType) < 0) {
+        if ([TYPE_NUMBER, TYPE_STRING].indexOf(requiredType) < 0) {
             throw new Error("TypeError");
         }
         var that = this;
@@ -1678,7 +1624,7 @@
     functionMaxBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
-      var keyFunction = this.createKeyFunction(exprefNode, ["number", "string"]);
+      var keyFunction = this.createKeyFunction(exprefNode, [TYPE_NUMBER, TYPE_STRING]);
       var maxNumber = -Infinity;
       var maxRecord;
       var current;
@@ -1695,7 +1641,7 @@
     functionMinBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
-      var keyFunction = this.createKeyFunction(exprefNode, ["number", "string"]);
+      var keyFunction = this.createKeyFunction(exprefNode, [TYPE_NUMBER, TYPE_STRING]);
       var minNumber = Infinity;
       var minRecord;
       var current;
@@ -1750,6 +1696,7 @@
   }
 
   function search(data, expression, options) {
+      var node;
       var parser = new Parser();
       // This needs to be improved.  Both the interpreter and runtime depend on
       // each other.  The runtime needs the interpreter to support exprefs.
@@ -1757,13 +1704,14 @@
       var runtime = new Runtime(undefined, undefined, options);
       var interpreter = new TreeInterpreter(runtime);
       runtime.interpreter = interpreter;
-      var node = parser.parse(expression);
-      return interpreter.search(node, data);
+      if(Object.prototype.toString.call(expression) === "[object String]") {
+        node = parser.parse(expression);
+      }
+      return interpreter.search(node || expression, data);
   }
 
   exports.tokenize = tokenize;
   exports.compile = compile;
   exports.search = search;
-  exports.Parser = Parser;
   exports.strictDeepEqual = strictDeepEqual;
 })(typeof exports === "undefined" ? this.jmespath = {} : exports);
