@@ -118,6 +118,17 @@
       return merged;
   }
 
+  var trimLeft;
+  if (typeof String.prototype.trimLeft === "function") {
+    trimLeft = function(str) {
+      return str.trimLeft();
+    };
+  } else {
+    trimLeft = function(str) {
+      return str.match(/^\s*(.*)/)[1];
+    };
+  }
+
 
   // Type constants used to define functions.
   var TYPE_NUMBER = 0;
@@ -380,7 +391,7 @@
           this.current++;
           var start = this.current;
           var maxLength = stream.length;
-          var literal, literalString;
+          var literal;
           while(stream[this.current] !== "`" && this.current < maxLength) {
               // You can escape a literal char or you can escape the escape.
               var current = this.current;
@@ -392,14 +403,7 @@
               }
               this.current = current;
           }
-          if (typeof String.prototype.trimLeft !== "function") {
-            var trimLeft = function(str) {
-              return str.match(/^\s*(.*)/)[1];
-            };
-            literalString = trimLeft(stream.slice(start, this.current));
-          } else {
-            literalString = stream.slice(start, this.current).trimLeft();
-          }
+          var literalString = trimLeft(stream.slice(start, this.current));
           literalString = literalString.replace("\\`", "`");
           if (this.looksLikeJSON(literalString)) {
               literal = JSON.parse(literalString);
