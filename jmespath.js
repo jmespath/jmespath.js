@@ -118,6 +118,17 @@
       return merged;
   }
 
+  var trimLeft;
+  if (typeof String.prototype.trimLeft === "function") {
+    trimLeft = function(str) {
+      return str.trimLeft();
+    };
+  } else {
+    trimLeft = function(str) {
+      return str.match(/^\s*(.*)/)[1];
+    };
+  }
+
 
   // Type constants used to define functions.
   var TYPE_NUMBER = 0;
@@ -392,7 +403,7 @@
               }
               this.current = current;
           }
-          var literalString = stream.slice(start, this.current).trimLeft();
+          var literalString = trimLeft(stream.slice(start, this.current));
           literalString = literalString.replace("\\`", "`");
           if (this.looksLikeJSON(literalString)) {
               literal = JSON.parse(literalString);
