@@ -226,73 +226,73 @@
   Lexer.prototype = {
       tokenize: function(stream) {
           var tokens = [];
-          this.current = 0;
+          this._current = 0;
           var start;
           var identifier;
           var token;
-          while (this.current < stream.length) {
-              if (isAlpha(stream[this.current])) {
-                  start = this.current;
-                  identifier = this.__consumeUnquotedIdentifier(stream);
+          while (this._current < stream.length) {
+              if (isAlpha(stream[this._current])) {
+                  start = this._current;
+                  identifier = this._consumeUnquotedIdentifier(stream);
                   tokens.push({type: TOK_UNQUOTEDIDENTIFIER,
                                value: identifier,
                                start: start});
-              } else if (basicTokens[stream[this.current]] !== undefined) {
-                  tokens.push({type: basicTokens[stream[this.current]],
-                              value: stream[this.current],
-                              start: this.current});
-                  this.current++;
-              } else if (isNum(stream[this.current])) {
-                  token = this.__consumeNumber(stream);
+              } else if (basicTokens[stream[this._current]] !== undefined) {
+                  tokens.push({type: basicTokens[stream[this._current]],
+                              value: stream[this._current],
+                              start: this._current});
+                  this._current++;
+              } else if (isNum(stream[this._current])) {
+                  token = this._consumeNumber(stream);
                   tokens.push(token);
-              } else if (stream[this.current] === "[") {
-                  // No need to increment this.current.  This happens
-                  // in __consumeLBracket
-                  token = this.__consumeLBracket(stream);
+              } else if (stream[this._current] === "[") {
+                  // No need to increment this._current.  This happens
+                  // in _consumeLBracket
+                  token = this._consumeLBracket(stream);
                   tokens.push(token);
-              } else if (stream[this.current] === "\"") {
-                  start = this.current;
-                  identifier = this.__consumeQuotedIdentifier(stream);
+              } else if (stream[this._current] === "\"") {
+                  start = this._current;
+                  identifier = this._consumeQuotedIdentifier(stream);
                   tokens.push({type: TOK_QUOTEDIDENTIFIER,
                                value: identifier,
                                start: start});
-              } else if (stream[this.current] === "'") {
-                  start = this.current;
-                  identifier = this.__consumeRawStringLiteral(stream);
+              } else if (stream[this._current] === "'") {
+                  start = this._current;
+                  identifier = this._consumeRawStringLiteral(stream);
                   tokens.push({type: TOK_LITERAL,
                                value: identifier,
                                start: start});
-              } else if (stream[this.current] === "`") {
-                  start = this.current;
-                  var literal = this.__consumeLiteral(stream);
+              } else if (stream[this._current] === "`") {
+                  start = this._current;
+                  var literal = this._consumeLiteral(stream);
                   tokens.push({type: TOK_LITERAL,
                                value: literal,
                                start: start});
-              } else if (operatorStartToken[stream[this.current]] !== undefined) {
-                  tokens.push(this.__consumeOperator(stream));
-              } else if (skipChars[stream[this.current]] !== undefined) {
+              } else if (operatorStartToken[stream[this._current]] !== undefined) {
+                  tokens.push(this._consumeOperator(stream));
+              } else if (skipChars[stream[this._current]] !== undefined) {
                   // Ignore whitespace.
-                  this.current++;
-              } else if (stream[this.current] === "&") {
-                  start = this.current;
-                  this.current++;
-                  if (stream[this.current] === "&") {
-                      this.current++;
+                  this._current++;
+              } else if (stream[this._current] === "&") {
+                  start = this._current;
+                  this._current++;
+                  if (stream[this._current] === "&") {
+                      this._current++;
                       tokens.push({type: TOK_AND, value: "&&", start: start});
                   } else {
                       tokens.push({type: TOK_EXPREF, value: "&", start: start});
                   }
-              } else if (stream[this.current] === "|") {
-                  start = this.current;
-                  this.current++;
-                  if (stream[this.current] === "|") {
-                      this.current++;
+              } else if (stream[this._current] === "|") {
+                  start = this._current;
+                  this._current++;
+                  if (stream[this._current] === "|") {
+                      this._current++;
                       tokens.push({type: TOK_OR, value: "||", start: start});
                   } else {
                       tokens.push({type: TOK_PIPE, value: "|", start: start});
                   }
               } else {
-                  var error = new Error("Unknown character:" + stream[this.current]);
+                  var error = new Error("Unknown character:" + stream[this._current]);
                   error.name = "LexerError";
                   throw error;
               }
@@ -300,142 +300,142 @@
           return tokens;
       },
 
-      __consumeUnquotedIdentifier: function(stream) {
-          var start = this.current;
-          this.current++;
-          while (this.current < stream.length && isAlphaNum(stream[this.current])) {
-              this.current++;
+      _consumeUnquotedIdentifier: function(stream) {
+          var start = this._current;
+          this._current++;
+          while (this._current < stream.length && isAlphaNum(stream[this._current])) {
+              this._current++;
           }
-          return stream.slice(start, this.current);
+          return stream.slice(start, this._current);
       },
 
-      __consumeQuotedIdentifier: function(stream) {
-          var start = this.current;
-          this.current++;
+      _consumeQuotedIdentifier: function(stream) {
+          var start = this._current;
+          this._current++;
           var maxLength = stream.length;
-          while (stream[this.current] !== "\"" && this.current < maxLength) {
+          while (stream[this._current] !== "\"" && this._current < maxLength) {
               // You can escape a double quote and you can escape an escape.
-              var current = this.current;
+              var current = this._current;
               if (stream[current] === "\\" && (stream[current + 1] === "\\" ||
                                                stream[current + 1] === "\"")) {
                   current += 2;
               } else {
                   current++;
               }
-              this.current = current;
+              this._current = current;
           }
-          this.current++;
-          return JSON.parse(stream.slice(start, this.current));
+          this._current++;
+          return JSON.parse(stream.slice(start, this._current));
       },
 
-      __consumeRawStringLiteral: function(stream) {
-          var start = this.current;
-          this.current++;
+      _consumeRawStringLiteral: function(stream) {
+          var start = this._current;
+          this._current++;
           var maxLength = stream.length;
-          while (stream[this.current] !== "'" && this.current < maxLength) {
+          while (stream[this._current] !== "'" && this._current < maxLength) {
               // You can escape a single quote and you can escape an escape.
-              var current = this.current;
+              var current = this._current;
               if (stream[current] === "\\" && (stream[current + 1] === "\\" ||
                                                stream[current + 1] === "'")) {
                   current += 2;
               } else {
                   current++;
               }
-              this.current = current;
+              this._current = current;
           }
-          this.current++;
-          var literal = stream.slice(start + 1, this.current - 1);
+          this._current++;
+          var literal = stream.slice(start + 1, this._current - 1);
           return literal.replace("\\'", "'");
       },
 
-      __consumeNumber: function(stream) {
-          var start = this.current;
-          this.current++;
+      _consumeNumber: function(stream) {
+          var start = this._current;
+          this._current++;
           var maxLength = stream.length;
-          while (isNum(stream[this.current]) && this.current < maxLength) {
-              this.current++;
+          while (isNum(stream[this._current]) && this._current < maxLength) {
+              this._current++;
           }
-          var value = parseInt(stream.slice(start, this.current));
+          var value = parseInt(stream.slice(start, this._current));
           return {type: TOK_NUMBER, value: value, start: start};
       },
 
-      __consumeLBracket: function(stream) {
-          var start = this.current;
-          this.current++;
-          if (stream[this.current] === "?") {
-              this.current++;
+      _consumeLBracket: function(stream) {
+          var start = this._current;
+          this._current++;
+          if (stream[this._current] === "?") {
+              this._current++;
               return {type: TOK_FILTER, value: "[?", start: start};
-          } else if (stream[this.current] === "]") {
-              this.current++;
+          } else if (stream[this._current] === "]") {
+              this._current++;
               return {type: TOK_FLATTEN, value: "[]", start: start};
           } else {
               return {type: TOK_LBRACKET, value: "[", start: start};
           }
       },
 
-      __consumeOperator: function(stream) {
-          var start = this.current;
+      _consumeOperator: function(stream) {
+          var start = this._current;
           var startingChar = stream[start];
-          this.current++;
+          this._current++;
           if (startingChar === "!") {
-              if (stream[this.current] === "=") {
-                  this.current++;
+              if (stream[this._current] === "=") {
+                  this._current++;
                   return {type: TOK_NE, value: "!=", start: start};
               } else {
                 return {type: TOK_NOT, value: "!", start: start};
               }
           } else if (startingChar === "<") {
-              if (stream[this.current] === "=") {
-                  this.current++;
+              if (stream[this._current] === "=") {
+                  this._current++;
                   return {type: TOK_LTE, value: "<=", start: start};
               } else {
                   return {type: TOK_LT, value: "<", start: start};
               }
           } else if (startingChar === ">") {
-              if (stream[this.current] === "=") {
-                  this.current++;
+              if (stream[this._current] === "=") {
+                  this._current++;
                   return {type: TOK_GTE, value: ">=", start: start};
               } else {
                   return {type: TOK_GT, value: ">", start: start};
               }
           } else if (startingChar === "=") {
-              if (stream[this.current] === "=") {
-                  this.current++;
+              if (stream[this._current] === "=") {
+                  this._current++;
                   return {type: TOK_EQ, value: "==", start: start};
               }
           }
       },
 
-      __consumeLiteral: function(stream) {
-          this.current++;
-          var start = this.current;
+      _consumeLiteral: function(stream) {
+          this._current++;
+          var start = this._current;
           var maxLength = stream.length;
           var literal;
-          while(stream[this.current] !== "`" && this.current < maxLength) {
+          while(stream[this._current] !== "`" && this._current < maxLength) {
               // You can escape a literal char or you can escape the escape.
-              var current = this.current;
+              var current = this._current;
               if (stream[current] === "\\" && (stream[current + 1] === "\\" ||
                                                stream[current + 1] === "`")) {
                   current += 2;
               } else {
                   current++;
               }
-              this.current = current;
+              this._current = current;
           }
-          var literalString = trimLeft(stream.slice(start, this.current));
+          var literalString = trimLeft(stream.slice(start, this._current));
           literalString = literalString.replace("\\`", "`");
-          if (this.__looksLikeJSON(literalString)) {
+          if (this._looksLikeJSON(literalString)) {
               literal = JSON.parse(literalString);
           } else {
               // Try to JSON parse it as "<literal>"
               literal = JSON.parse("\"" + literalString + "\"");
           }
           // +1 gets us to the ending "`", +1 to move on to the next char.
-          this.current++;
+          this._current++;
           return literal;
       },
 
-      __looksLikeJSON: function(literalString) {
+      _looksLikeJSON: function(literalString) {
           var startingChars = "[{\"";
           var jsonLiterals = ["true", "false", "null"];
           var numberLooking = "-0123456789";
@@ -493,11 +493,11 @@
 
   Parser.prototype = {
       parse: function(expression) {
-          this.__loadTokens(expression);
+          this._loadTokens(expression);
           this.index = 0;
           var ast = this.expression(0);
-          if (this.__lookahead(0) !== TOK_EOF) {
-              var t = this.__lookaheadToken(0);
+          if (this._lookahead(0) !== TOK_EOF) {
+              var t = this._lookaheadToken(0);
               var error = new Error(
                   "Unexpected token type: " + t.type + ", value: " + t.value);
               error.name = "ParserError";
@@ -506,7 +506,7 @@
           return ast;
       },
 
-      __loadTokens: function(expression) {
+      _loadTokens: function(expression) {
           var lexer = new Lexer();
           var tokens = lexer.tokenize(expression);
           tokens.push({type: TOK_EOF, value: "", start: expression.length});
@@ -514,27 +514,27 @@
       },
 
       expression: function(rbp) {
-          var leftToken = this.__lookaheadToken(0);
-          this.__advance();
+          var leftToken = this._lookaheadToken(0);
+          this._advance();
           var left = this.nud(leftToken);
-          var currentToken = this.__lookahead(0);
+          var currentToken = this._lookahead(0);
           while (rbp < bindingPower[currentToken]) {
-              this.__advance();
+              this._advance();
               left = this.led(currentToken, left);
-              currentToken = this.__lookahead(0);
+              currentToken = this._lookahead(0);
           }
           return left;
       },
 
-      __lookahead: function(number) {
+      _lookahead: function(number) {
           return this.tokens[this.index + number].type;
       },
 
-      __lookaheadToken: function(number) {
+      _lookaheadToken: function(number) {
           return this.tokens[this.index + number];
       },
 
-      __advance: function() {
+      _advance: function() {
           this.index++;
       },
 
@@ -549,7 +549,7 @@
             return {type: "Field", name: token.value};
           case TOK_QUOTEDIDENTIFIER:
             var node = {type: "Field", name: token.value};
-            if (this.__lookahead(0) === TOK_LPAREN) {
+            if (this._lookahead(0) === TOK_LPAREN) {
                 throw new Error("Quoted identifier not allowed for function names.");
             } else {
                 return node;
@@ -561,35 +561,35 @@
           case TOK_STAR:
             left = {type: "Identity"};
             right = null;
-            if (this.__lookahead(0) === TOK_RBRACKET) {
+            if (this._lookahead(0) === TOK_RBRACKET) {
                 // This can happen in a multiselect,
                 // [a, b, *]
                 right = {type: "Identity"};
             } else {
-                right = this.__parseProjectionRHS(bindingPower.Star);
+                right = this._parseProjectionRHS(bindingPower.Star);
             }
             return {type: "ValueProjection", children: [left, right]};
           case TOK_FILTER:
             return this.led(token.type, {type: "Identity"});
           case TOK_LBRACE:
-            return this.__parseMultiselectHash();
+            return this._parseMultiselectHash();
           case TOK_FLATTEN:
             left = {type: TOK_FLATTEN, children: [{type: "Identity"}]};
-            right = this.__parseProjectionRHS(bindingPower.Flatten);
+            right = this._parseProjectionRHS(bindingPower.Flatten);
             return {type: "Projection", children: [left, right]};
           case TOK_LBRACKET:
-            if (this.__lookahead(0) === TOK_NUMBER || this.__lookahead(0) === TOK_COLON) {
-                right = this.__parseIndexExpression();
-                return this.__projectIfSlice({type: "Identity"}, right);
-            } else if (this.__lookahead(0) === TOK_STAR &&
-                       this.__lookahead(1) === TOK_RBRACKET) {
-                this.__advance();
-                this.__advance();
-                right = this.__parseProjectionRHS(bindingPower.Star);
+            if (this._lookahead(0) === TOK_NUMBER || this._lookahead(0) === TOK_COLON) {
+                right = this._parseIndexExpression();
+                return this._projectIfSlice({type: "Identity"}, right);
+            } else if (this._lookahead(0) === TOK_STAR &&
+                       this._lookahead(1) === TOK_RBRACKET) {
+                this._advance();
+                this._advance();
+                right = this._parseProjectionRHS(bindingPower.Star);
                 return {type: "Projection",
                         children: [{type: "Identity"}, right]};
             } else {
-                return this.__parseMultiselectList();
+                return this._parseMultiselectList();
             }
             break;
           case TOK_CURRENT:
@@ -599,19 +599,19 @@
             return {type: "ExpressionReference", children: [expression]};
           case TOK_LPAREN:
             var args = [];
-            while (this.__lookahead(0) !== TOK_RPAREN) {
-              if (this.__lookahead(0) === TOK_CURRENT) {
+            while (this._lookahead(0) !== TOK_RPAREN) {
+              if (this._lookahead(0) === TOK_CURRENT) {
                 expression = {type: TOK_CURRENT};
-                this.__advance();
+                this._advance();
               } else {
                 expression = this.expression(0);
               }
               args.push(expression);
             }
-            this.__match(TOK_RPAREN);
+            this._match(TOK_RPAREN);
             return args[0];
           default:
-            this.__errorToken(token);
+            this._errorToken(token);
         }
       },
 
@@ -620,13 +620,13 @@
         switch(tokenName) {
           case TOK_DOT:
             var rbp = bindingPower.Dot;
-            if (this.__lookahead(0) !== TOK_STAR) {
-                right = this.__parseDotRHS(rbp);
+            if (this._lookahead(0) !== TOK_STAR) {
+                right = this._parseDotRHS(rbp);
                 return {type: "Subexpression", children: [left, right]};
             } else {
                 // Creating a projection.
-                this.__advance();
-                right = this.__parseProjectionRHS(rbp);
+                this._advance();
+                right = this._parseProjectionRHS(rbp);
                 return {type: "ValueProjection", children: [left, right]};
             }
             break;
@@ -643,33 +643,33 @@
             var name = left.name;
             var args = [];
             var expression, node;
-            while (this.__lookahead(0) !== TOK_RPAREN) {
-              if (this.__lookahead(0) === TOK_CURRENT) {
+            while (this._lookahead(0) !== TOK_RPAREN) {
+              if (this._lookahead(0) === TOK_CURRENT) {
                 expression = {type: TOK_CURRENT};
-                this.__advance();
+                this._advance();
               } else {
                 expression = this.expression(0);
               }
-              if (this.__lookahead(0) === TOK_COMMA) {
-                this.__match(TOK_COMMA);
+              if (this._lookahead(0) === TOK_COMMA) {
+                this._match(TOK_COMMA);
               }
               args.push(expression);
             }
-            this.__match(TOK_RPAREN);
+            this._match(TOK_RPAREN);
             node = {type: "Function", name: name, children: args};
             return node;
           case TOK_FILTER:
             var condition = this.expression(0);
-            this.__match(TOK_RBRACKET);
-            if (this.__lookahead(0) === TOK_FLATTEN) {
+            this._match(TOK_RBRACKET);
+            if (this._lookahead(0) === TOK_FLATTEN) {
               right = {type: "Identity"};
             } else {
-              right = this.__parseProjectionRHS(bindingPower.Filter);
+              right = this._parseProjectionRHS(bindingPower.Filter);
             }
             return {type: "FilterProjection", children: [left, right, condition]};
           case TOK_FLATTEN:
             var leftNode = {type: TOK_FLATTEN, children: [left]};
-            var rightNode = this.__parseProjectionRHS(bindingPower.Flatten);
+            var rightNode = this._parseProjectionRHS(bindingPower.Flatten);
             return {type: "Projection", children: [leftNode, rightNode]};
           case TOK_EQ:
           case TOK_NE:
@@ -677,36 +677,36 @@
           case TOK_GTE:
           case TOK_LT:
           case TOK_LTE:
-            return this.__parseComparator(left, tokenName);
+            return this._parseComparator(left, tokenName);
           case TOK_LBRACKET:
-            var token = this.__lookaheadToken(0);
+            var token = this._lookaheadToken(0);
             if (token.type === TOK_NUMBER || token.type === TOK_COLON) {
-                right = this.__parseIndexExpression();
-                return this.__projectIfSlice(left, right);
+                right = this._parseIndexExpression();
+                return this._projectIfSlice(left, right);
             } else {
-                this.__match(TOK_STAR);
-                this.__match(TOK_RBRACKET);
-                right = this.__parseProjectionRHS(bindingPower.Star);
+                this._match(TOK_STAR);
+                this._match(TOK_RBRACKET);
+                right = this._parseProjectionRHS(bindingPower.Star);
                 return {type: "Projection", children: [left, right]};
             }
             break;
           default:
-            this.__errorToken(this.__lookaheadToken(0));
+            this._errorToken(this._lookaheadToken(0));
         }
       },
 
-      __match: function(tokenType) {
-          if (this.__lookahead(0) === tokenType) {
-              this.__advance();
+      _match: function(tokenType) {
+          if (this._lookahead(0) === tokenType) {
+              this._advance();
           } else {
-              var t = this.__lookaheadToken(0);
+              var t = this._lookaheadToken(0);
               var error = new Error("Expected " + tokenType + ", got: " + t.type);
               error.name = "ParserError";
               throw error;
           }
       },
 
-      __errorToken: function(token) {
+      _errorToken: function(token) {
           var error = new Error("Invalid token (" +
                                 token.type + "): \"" +
                                 token.value + "\"");
@@ -715,92 +715,92 @@
       },
 
 
-      __parseIndexExpression: function() {
-          if (this.__lookahead(0) === TOK_COLON || this.__lookahead(1) === TOK_COLON) {
-              return this.__parseSliceExpression();
+      _parseIndexExpression: function() {
+          if (this._lookahead(0) === TOK_COLON || this._lookahead(1) === TOK_COLON) {
+              return this._parseSliceExpression();
           } else {
               var node = {
                   type: "Index",
-                  value: this.__lookaheadToken(0).value};
-              this.__advance();
-              this.__match(TOK_RBRACKET);
+                  value: this._lookaheadToken(0).value};
+              this._advance();
+              this._match(TOK_RBRACKET);
               return node;
           }
       },
 
-      __projectIfSlice: function(left, right) {
+      _projectIfSlice: function(left, right) {
           var indexExpr = {type: "IndexExpression", children: [left, right]};
           if (right.type === "Slice") {
               return {
                   type: "Projection",
-                  children: [indexExpr, this.__parseProjectionRHS(bindingPower.Star)]
+                  children: [indexExpr, this._parseProjectionRHS(bindingPower.Star)]
               };
           } else {
               return indexExpr;
           }
       },
 
-      __parseSliceExpression: function() {
+      _parseSliceExpression: function() {
           // [start:end:step] where each part is optional, as well as the last
           // colon.
           var parts = [null, null, null];
           var index = 0;
-          var currentToken = this.__lookahead(0);
+          var currentToken = this._lookahead(0);
           while (currentToken !== TOK_RBRACKET && index < 3) {
               if (currentToken === TOK_COLON) {
                   index++;
-                  this.__advance();
+                  this._advance();
               } else if (currentToken === TOK_NUMBER) {
-                  parts[index] = this.__lookaheadToken(0).value;
-                  this.__advance();
+                  parts[index] = this._lookaheadToken(0).value;
+                  this._advance();
               } else {
-                  var t = this.__lookahead(0);
+                  var t = this._lookahead(0);
                   var error = new Error("Syntax error, unexpected token: " +
                                         t.value + "(" + t.type + ")");
                   error.name = "Parsererror";
                   throw error;
               }
-              currentToken = this.__lookahead(0);
+              currentToken = this._lookahead(0);
           }
-          this.__match(TOK_RBRACKET);
+          this._match(TOK_RBRACKET);
           return {
               type: "Slice",
               children: parts
           };
       },
 
-      __parseComparator: function(left, comparator) {
+      _parseComparator: function(left, comparator) {
         var right = this.expression(bindingPower[comparator]);
         return {type: "Comparator", name: comparator, children: [left, right]};
       },
 
-      __parseDotRHS: function(rbp) {
-          var lookahead = this.__lookahead(0);
+      _parseDotRHS: function(rbp) {
+          var lookahead = this._lookahead(0);
           var exprTokens = [TOK_UNQUOTEDIDENTIFIER, TOK_QUOTEDIDENTIFIER, TOK_STAR];
           if (exprTokens.indexOf(lookahead) >= 0) {
               return this.expression(rbp);
           } else if (lookahead === TOK_LBRACKET) {
-              this.__match(TOK_LBRACKET);
-              return this.__parseMultiselectList();
+              this._match(TOK_LBRACKET);
+              return this._parseMultiselectList();
           } else if (lookahead === TOK_LBRACE) {
-              this.__match(TOK_LBRACE);
-              return this.__parseMultiselectHash();
+              this._match(TOK_LBRACE);
+              return this._parseMultiselectHash();
           }
       },
 
-      __parseProjectionRHS: function(rbp) {
+      _parseProjectionRHS: function(rbp) {
           var right;
-          if (bindingPower[this.__lookahead(0)] < 10) {
+          if (bindingPower[this._lookahead(0)] < 10) {
               right = {type: "Identity"};
-          } else if (this.__lookahead(0) === TOK_LBRACKET) {
+          } else if (this._lookahead(0) === TOK_LBRACKET) {
               right = this.expression(rbp);
-          } else if (this.__lookahead(0) === TOK_FILTER) {
+          } else if (this._lookahead(0) === TOK_FILTER) {
               right = this.expression(rbp);
-          } else if (this.__lookahead(0) === TOK_DOT) {
-              this.__match(TOK_DOT);
-              right = this.__parseDotRHS(rbp);
+          } else if (this._lookahead(0) === TOK_DOT) {
+              this._match(TOK_DOT);
+              right = this._parseDotRHS(rbp);
           } else {
-              var t = this.__lookaheadToken(0);
+              var t = this._lookaheadToken(0);
               var error = new Error("Sytanx error, unexpected token: " +
                                     t.value + "(" + t.type + ")");
               error.name = "ParserError";
@@ -809,42 +809,42 @@
           return right;
       },
 
-      __parseMultiselectList: function() {
+      _parseMultiselectList: function() {
           var expressions = [];
-          while (this.__lookahead(0) !== TOK_RBRACKET) {
+          while (this._lookahead(0) !== TOK_RBRACKET) {
               var expression = this.expression(0);
               expressions.push(expression);
-              if (this.__lookahead(0) === TOK_COMMA) {
-                  this.__match(TOK_COMMA);
-                  if (this.__lookahead(0) === TOK_RBRACKET) {
+              if (this._lookahead(0) === TOK_COMMA) {
+                  this._match(TOK_COMMA);
+                  if (this._lookahead(0) === TOK_RBRACKET) {
                     throw new Error("Unexpected token Rbracket");
                   }
               }
           }
-          this.__match(TOK_RBRACKET);
+          this._match(TOK_RBRACKET);
           return {type: "MultiSelectList", children: expressions};
       },
 
-      __parseMultiselectHash: function() {
+      _parseMultiselectHash: function() {
         var pairs = [];
         var identifierTypes = [TOK_UNQUOTEDIDENTIFIER, TOK_QUOTEDIDENTIFIER];
         var keyToken, keyName, value, node;
         for (;;) {
-          keyToken = this.__lookaheadToken(0);
+          keyToken = this._lookaheadToken(0);
           if (identifierTypes.indexOf(keyToken.type) < 0) {
             throw new Error("Expecting an identifier token, got: " +
                             keyToken.type);
           }
           keyName = keyToken.value;
-          this.__advance();
-          this.__match(TOK_COLON);
+          this._advance();
+          this._match(TOK_COLON);
           value = this.expression(0);
           node = {type: "KeyValuePair", name: keyName, value: value};
           pairs.push(node);
-          if (this.__lookahead(0) === TOK_COMMA) {
-            this.__match(TOK_COMMA);
-          } else if (this.__lookahead(0) === TOK_RBRACE) {
-            this.__match(TOK_RBRACE);
+          if (this._lookahead(0) === TOK_COMMA) {
+            this._match(TOK_COMMA);
+          } else if (this._lookahead(0) === TOK_RBRACE) {
+            this._match(TOK_RBRACE);
             break;
           }
         }
@@ -1123,7 +1123,7 @@
   };
 
   function Runtime(interpreter) {
-    this.interpreter = interpreter;
+    this._interpreter = interpreter;
     this.functionTable = {
         // name: [function, <signature>]
         // The <signature> can be:
@@ -1138,69 +1138,69 @@
         // types.  If the type is "any" then no type checking
         // occurs on the argument.  Variadic is optional
         // and if not provided is assumed to be false.
-        abs: {func: this.__functionAbs, signature: [{types: [TYPE_NUMBER]}]},
-        avg: {func: this.__functionAvg, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
-        ceil: {func: this.__functionCeil, signature: [{types: [TYPE_NUMBER]}]},
+        abs: {_func: this._functionAbs, _signature: [{types: [TYPE_NUMBER]}]},
+        avg: {_func: this._functionAvg, _signature: [{types: [TYPE_ARRAY_NUMBER]}]},
+        ceil: {_func: this._functionCeil, _signature: [{types: [TYPE_NUMBER]}]},
         contains: {
-            func: this.__functionContains,
-            signature: [{types: [TYPE_STRING, TYPE_ARRAY]},
+            _func: this._functionContains,
+            _signature: [{types: [TYPE_STRING, TYPE_ARRAY]},
                         {types: [TYPE_ANY]}]},
         "ends_with": {
-            func: this.__functionEndsWith,
-            signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
-        floor: {func: this.functionFloor, signature: [{types: [TYPE_NUMBER]}]},
+            _func: this._functionEndsWith,
+            _signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
+        floor: {_func: this._functionFloor, _signature: [{types: [TYPE_NUMBER]}]},
         length: {
-            func: this.__functionLength,
-            signature: [{types: [TYPE_STRING, TYPE_ARRAY, TYPE_OBJECT]}]},
+            _func: this._functionLength,
+            _signature: [{types: [TYPE_STRING, TYPE_ARRAY, TYPE_OBJECT]}]},
         map: {
-            func: this.__functionMap,
-            signature: [{types: [TYPE_EXPREF]}, {types: [TYPE_ARRAY]}]},
+            _func: this._functionMap,
+            _signature: [{types: [TYPE_EXPREF]}, {types: [TYPE_ARRAY]}]},
         max: {
-            func: this.__functionMax,
-            signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
+            _func: this._functionMax,
+            _signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
         "merge": {
-            func: this.__functionMerge,
-            signature: [{types: [TYPE_OBJECT], variadic: true}]
+            _func: this._functionMerge,
+            _signature: [{types: [TYPE_OBJECT], variadic: true}]
         },
         "max_by": {
-          func: this.__functionMaxBy,
-          signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
+          _func: this._functionMaxBy,
+          _signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
-        sum: {func: this.__functionSum, signature: [{types: [TYPE_ARRAY_NUMBER]}]},
+        sum: {_func: this._functionSum, _signature: [{types: [TYPE_ARRAY_NUMBER]}]},
         "starts_with": {
-            func: this.__functionStartsWith,
-            signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
+            _func: this._functionStartsWith,
+            _signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
         min: {
-            func: this.__functionMin,
-            signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
+            _func: this._functionMin,
+            _signature: [{types: [TYPE_ARRAY_NUMBER, TYPE_ARRAY_STRING]}]},
         "min_by": {
-          func: this.__functionMinBy,
-          signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
+          _func: this._functionMinBy,
+          _signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
-        type: {func: this.__functionType, signature: [{types: [TYPE_ANY]}]},
-        keys: {func: this.__functionKeys, signature: [{types: [TYPE_OBJECT]}]},
-        values: {func: this.__functionValues, signature: [{types: [TYPE_OBJECT]}]},
-        sort: {func: this.__functionSort, signature: [{types: [TYPE_ARRAY_STRING, TYPE_ARRAY_NUMBER]}]},
+        type: {_func: this._functionType, _signature: [{types: [TYPE_ANY]}]},
+        keys: {_func: this._functionKeys, _signature: [{types: [TYPE_OBJECT]}]},
+        values: {_func: this._functionValues, _signature: [{types: [TYPE_OBJECT]}]},
+        sort: {_func: this._functionSort, _signature: [{types: [TYPE_ARRAY_STRING, TYPE_ARRAY_NUMBER]}]},
         "sort_by": {
-          func: this.__functionSortBy,
-          signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
+          _func: this._functionSortBy,
+          _signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
         join: {
-            func: this.__functionJoin,
-            signature: [
+            _func: this._functionJoin,
+            _signature: [
                 {types: [TYPE_STRING]},
                 {types: [TYPE_ARRAY_STRING]}
             ]
         },
         reverse: {
-            func: this.__functionReverse,
-            signature: [{types: [TYPE_STRING, TYPE_ARRAY]}]},
-        "to_array": {func: this.__functionToArray, signature: [{types: [TYPE_ANY]}]},
-        "to_string": {func: this.__functionToString, signature: [{types: [TYPE_ANY]}]},
-        "to_number": {func: this.__functionToNumber, signature: [{types: [TYPE_ANY]}]},
+            _func: this._functionReverse,
+            _signature: [{types: [TYPE_STRING, TYPE_ARRAY]}]},
+        "to_array": {_func: this._functionToArray, _signature: [{types: [TYPE_ANY]}]},
+        "to_string": {_func: this._functionToString, _signature: [{types: [TYPE_ANY]}]},
+        "to_number": {_func: this._functionToNumber, _signature: [{types: [TYPE_ANY]}]},
         "not_null": {
-            func: this.__functionNotNull,
-            signature: [{types: [TYPE_ANY], variadic: true}]
+            _func: this._functionNotNull,
+            _signature: [{types: [TYPE_ANY], variadic: true}]
         }
     };
   }
@@ -1211,11 +1211,11 @@
       if (functionEntry === undefined) {
           throw new Error("Unknown function: " + name + "()");
       }
-      this.__validateArgs(name, resolvedArgs, functionEntry.signature);
-      return functionEntry.func.call(this, resolvedArgs);
+      this._validateArgs(name, resolvedArgs, functionEntry._signature);
+      return functionEntry._func.call(this, resolvedArgs);
     },
 
-    __validateArgs: function(name, args, signature) {
+    _validateArgs: function(name, args, signature) {
         // Validating the args requires validating
         // the correct arity and the correct type of each arg.
         // If the last argument is declared as variadic, then we need
@@ -1241,9 +1241,9 @@
         for (var i = 0; i < signature.length; i++) {
             typeMatched = false;
             currentSpec = signature[i].types;
-            actualType = this.__getTypeName(args[i]);
+            actualType = this._getTypeName(args[i]);
             for (var j = 0; j < currentSpec.length; j++) {
-                if (this.__typeMatches(actualType, currentSpec[j], args[i])) {
+                if (this._typeMatches(actualType, currentSpec[j], args[i])) {
                     typeMatched = true;
                     break;
                 }
@@ -1258,7 +1258,7 @@
         }
     },
 
-    __typeMatches: function(actual, expected, argValue) {
+    _typeMatches: function(actual, expected, argValue) {
         if (expected === TYPE_ANY) {
             return true;
         }
@@ -1281,8 +1281,8 @@
                   subtype = TYPE_STRING;
                 }
                 for (var i = 0; i < argValue.length; i++) {
-                    if (!this.__typeMatches(
-                            this.__getTypeName(argValue[i]), subtype,
+                    if (!this._typeMatches(
+                            this._getTypeName(argValue[i]), subtype,
                                              argValue[i])) {
                         return false;
                     }
@@ -1293,7 +1293,7 @@
             return actual === expected;
         }
     },
-    __getTypeName: function(obj) {
+    _getTypeName: function(obj) {
         switch (Object.prototype.toString.call(obj)) {
             case "[object String]":
               return TYPE_STRING;
@@ -1316,18 +1316,18 @@
         }
     },
 
-    __functionStartsWith: function(resolvedArgs) {
+    _functionStartsWith: function(resolvedArgs) {
         return resolvedArgs[0].lastIndexOf(resolvedArgs[1]) === 0;
     },
 
-    __functionEndsWith: function(resolvedArgs) {
+    _functionEndsWith: function(resolvedArgs) {
         var searchStr = resolvedArgs[0];
         var suffix = resolvedArgs[1];
         return searchStr.indexOf(suffix, searchStr.length - suffix.length) !== -1;
     },
 
-    __functionReverse: function(resolvedArgs) {
-        var typeName = this.__getTypeName(resolvedArgs[0]);
+    _functionReverse: function(resolvedArgs) {
+        var typeName = this._getTypeName(resolvedArgs[0]);
         if (typeName === TYPE_STRING) {
           var originalStr = resolvedArgs[0];
           var reversedStr = "";
@@ -1342,15 +1342,15 @@
         }
     },
 
-    __functionAbs: function(resolvedArgs) {
+    _functionAbs: function(resolvedArgs) {
       return Math.abs(resolvedArgs[0]);
     },
 
-    __functionCeil: function(resolvedArgs) {
+    _functionCeil: function(resolvedArgs) {
         return Math.ceil(resolvedArgs[0]);
     },
 
-    __functionAvg: function(resolvedArgs) {
+    _functionAvg: function(resolvedArgs) {
         var sum = 0;
         var inputArray = resolvedArgs[0];
         for (var i = 0; i < inputArray.length; i++) {
@@ -1359,15 +1359,15 @@
         return sum / inputArray.length;
     },
 
-    __functionContains: function(resolvedArgs) {
+    _functionContains: function(resolvedArgs) {
         return resolvedArgs[0].indexOf(resolvedArgs[1]) >= 0;
     },
 
-    functionFloor: function(resolvedArgs) {
+    _functionFloor: function(resolvedArgs) {
         return Math.floor(resolvedArgs[0]);
     },
 
-    __functionLength: function(resolvedArgs) {
+    _functionLength: function(resolvedArgs) {
        if (!isObject(resolvedArgs[0])) {
          return resolvedArgs[0].length;
        } else {
@@ -1377,9 +1377,9 @@
        }
     },
 
-    __functionMap: function(resolvedArgs) {
+    _functionMap: function(resolvedArgs) {
       var mapped = [];
-      var interpreter = this.interpreter;
+      var interpreter = this._interpreter;
       var exprefNode = resolvedArgs[0];
       var elements = resolvedArgs[1];
       for (var i = 0; i < elements.length; i++) {
@@ -1388,7 +1388,7 @@
       return mapped;
     },
 
-    __functionMerge: function(resolvedArgs) {
+    _functionMerge: function(resolvedArgs) {
       var merged = {};
       for (var i = 0; i < resolvedArgs.length; i++) {
         var current = resolvedArgs[i];
@@ -1399,9 +1399,9 @@
       return merged;
     },
 
-    __functionMax: function(resolvedArgs) {
+    _functionMax: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
-        var typeName = this.__getTypeName(resolvedArgs[0][0]);
+        var typeName = this._getTypeName(resolvedArgs[0][0]);
         if (typeName === TYPE_NUMBER) {
           return Math.max.apply(Math, resolvedArgs[0]);
         } else {
@@ -1419,9 +1419,9 @@
       }
     },
 
-    __functionMin: function(resolvedArgs) {
+    _functionMin: function(resolvedArgs) {
       if (resolvedArgs[0].length > 0) {
-        var typeName = this.__getTypeName(resolvedArgs[0][0]);
+        var typeName = this._getTypeName(resolvedArgs[0][0]);
         if (typeName === TYPE_NUMBER) {
           return Math.min.apply(Math, resolvedArgs[0]);
         } else {
@@ -1439,7 +1439,7 @@
       }
     },
 
-    __functionSum: function(resolvedArgs) {
+    _functionSum: function(resolvedArgs) {
       var sum = 0;
       var listToSum = resolvedArgs[0];
       for (var i = 0; i < listToSum.length; i++) {
@@ -1448,8 +1448,8 @@
       return sum;
     },
 
-    __functionType: function(resolvedArgs) {
-        switch (this.__getTypeName(resolvedArgs[0])) {
+    _functionType: function(resolvedArgs) {
+        switch (this._getTypeName(resolvedArgs[0])) {
           case TYPE_NUMBER:
             return "number";
           case TYPE_STRING:
@@ -1467,11 +1467,11 @@
         }
     },
 
-    __functionKeys: function(resolvedArgs) {
+    _functionKeys: function(resolvedArgs) {
         return Object.keys(resolvedArgs[0]);
     },
 
-    __functionValues: function(resolvedArgs) {
+    _functionValues: function(resolvedArgs) {
         var obj = resolvedArgs[0];
         var keys = Object.keys(obj);
         var values = [];
@@ -1481,30 +1481,30 @@
         return values;
     },
 
-    __functionJoin: function(resolvedArgs) {
+    _functionJoin: function(resolvedArgs) {
         var joinChar = resolvedArgs[0];
         var listJoin = resolvedArgs[1];
         return listJoin.join(joinChar);
     },
 
-    __functionToArray: function(resolvedArgs) {
-        if (this.__getTypeName(resolvedArgs[0]) === TYPE_ARRAY) {
+    _functionToArray: function(resolvedArgs) {
+        if (this._getTypeName(resolvedArgs[0]) === TYPE_ARRAY) {
             return resolvedArgs[0];
         } else {
             return [resolvedArgs[0]];
         }
     },
 
-    __functionToString: function(resolvedArgs) {
-        if (this.__getTypeName(resolvedArgs[0]) === TYPE_STRING) {
+    _functionToString: function(resolvedArgs) {
+        if (this._getTypeName(resolvedArgs[0]) === TYPE_STRING) {
             return resolvedArgs[0];
         } else {
             return JSON.stringify(resolvedArgs[0]);
         }
     },
 
-    __functionToNumber: function(resolvedArgs) {
-        var typeName = this.__getTypeName(resolvedArgs[0]);
+    _functionToNumber: function(resolvedArgs) {
+        var typeName = this._getTypeName(resolvedArgs[0]);
         var convertedValue;
         if (typeName === TYPE_NUMBER) {
             return resolvedArgs[0];
@@ -1517,29 +1517,29 @@
         return null;
     },
 
-    __functionNotNull: function(resolvedArgs) {
+    _functionNotNull: function(resolvedArgs) {
         for (var i = 0; i < resolvedArgs.length; i++) {
-            if (this.__getTypeName(resolvedArgs[i]) !== TYPE_NULL) {
+            if (this._getTypeName(resolvedArgs[i]) !== TYPE_NULL) {
                 return resolvedArgs[i];
             }
         }
         return null;
     },
 
-    __functionSort: function(resolvedArgs) {
+    _functionSort: function(resolvedArgs) {
         var sortedArray = resolvedArgs[0].slice(0);
         sortedArray.sort();
         return sortedArray;
     },
 
-    __functionSortBy: function(resolvedArgs) {
+    _functionSortBy: function(resolvedArgs) {
         var sortedArray = resolvedArgs[0].slice(0);
         if (sortedArray.length === 0) {
             return sortedArray;
         }
-        var interpreter = this.interpreter;
+        var interpreter = this._interpreter;
         var exprefNode = resolvedArgs[1];
-        var requiredType = this.__getTypeName(
+        var requiredType = this._getTypeName(
             interpreter.visit(exprefNode, sortedArray[0]));
         if ([TYPE_NUMBER, TYPE_STRING].indexOf(requiredType) < 0) {
             throw new Error("TypeError");
@@ -1559,14 +1559,14 @@
         decorated.sort(function(a, b) {
           var exprA = interpreter.visit(exprefNode, a[1]);
           var exprB = interpreter.visit(exprefNode, b[1]);
-          if (that.__getTypeName(exprA) !== requiredType) {
+          if (that._getTypeName(exprA) !== requiredType) {
               throw new Error(
                   "TypeError: expected " + requiredType + ", received " +
-                  that.__getTypeName(exprA));
-          } else if (that.__getTypeName(exprB) !== requiredType) {
+                  that._getTypeName(exprA));
+          } else if (that._getTypeName(exprB) !== requiredType) {
               throw new Error(
                   "TypeError: expected " + requiredType + ", received " +
-                  that.__getTypeName(exprB));
+                  that._getTypeName(exprB));
           }
           if (exprA > exprB) {
             return 1;
@@ -1586,7 +1586,7 @@
         return sortedArray;
     },
 
-    __functionMaxBy: function(resolvedArgs) {
+    _functionMaxBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
       var keyFunction = this.createKeyFunction(exprefNode, [TYPE_NUMBER, TYPE_STRING]);
@@ -1603,7 +1603,7 @@
       return maxRecord;
     },
 
-    __functionMinBy: function(resolvedArgs) {
+    _functionMinBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
       var keyFunction = this.createKeyFunction(exprefNode, [TYPE_NUMBER, TYPE_STRING]);
@@ -1622,12 +1622,12 @@
 
     createKeyFunction: function(exprefNode, allowedTypes) {
       var that = this;
-      var interpreter = this.interpreter;
+      var interpreter = this._interpreter;
       var keyFunc = function(x) {
         var current = interpreter.visit(exprefNode, x);
-        if (allowedTypes.indexOf(that.__getTypeName(current)) < 0) {
+        if (allowedTypes.indexOf(that._getTypeName(current)) < 0) {
           var msg = "TypeError: expected one of " + allowedTypes +
-                    ", received " + that.__getTypeName(current);
+                    ", received " + that._getTypeName(current);
           throw new Error(msg);
         }
         return current;
@@ -1655,7 +1655,7 @@
       // There's likely a clean way to avoid the cyclic dependency.
       var runtime = new Runtime();
       var interpreter = new TreeInterpreter(runtime);
-      runtime.interpreter = interpreter;
+      runtime._interpreter = interpreter;
       var node = parser.parse(expression);
       return interpreter.search(node, data);
   }
