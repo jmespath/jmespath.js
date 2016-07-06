@@ -554,7 +554,6 @@
             } else {
                 return node;
             }
-            break;
           case TOK_NOT:
             right = this.expression(bindingPower.Not);
             return {type: "NotExpression", children: [right]};
@@ -591,7 +590,6 @@
             } else {
                 return this._parseMultiselectList();
             }
-            break;
           case TOK_CURRENT:
             return {type: TOK_CURRENT};
           case TOK_EXPREF:
@@ -629,7 +627,6 @@
                 right = this._parseProjectionRHS(rbp);
                 return {type: "ValueProjection", children: [left, right]};
             }
-            break;
           case TOK_PIPE:
             right = this.expression(bindingPower.Pipe);
             return {type: TOK_PIPE, children: [left, right]};
@@ -689,7 +686,6 @@
                 right = this._parseProjectionRHS(bindingPower.Star);
                 return {type: "Projection", children: [left, right]};
             }
-            break;
           default:
             this._errorToken(this._lookaheadToken(0));
         }
@@ -878,7 +874,6 @@
               } else {
                 return null;
               }
-              break;
             case "Subexpression":
               result = this.visit(node.children[0], value);
               for (i = 1; i < node.children.length; i++) {
