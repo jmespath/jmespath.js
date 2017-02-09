@@ -32,12 +32,7 @@
     "url": "http://github.com/jmespath/jmespath.js/issues",
     "mail": ""
   },
-  "licenses": [
-    {
-      "type": "Apache 2.0",
-      "url": "http://github.com/jmespath/jmespath.js/raw/master/LICENSE"
-    }
-  ],
+  "license": "Apache-2.0",
   "keywords": [
     "jmespath",
     "jsonpath",
