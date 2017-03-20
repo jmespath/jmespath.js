@@ -402,6 +402,10 @@
               if (stream[this._current] === "=") {
                   this._current++;
                   return {type: TOK_EQ, value: "==", start: start};
+              } else {
+                var error = new Error("Unexpected token: do you mean `==' operator ?");
+                error.name = "ParserError";
+                throw error;
               }
           }
       },
