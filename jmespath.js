@@ -17,6 +17,13 @@
     }
   }
 
+  function isTraversable(obj) {
+    if (obj == null) return false;
+    var type = typeof obj;
+    if (type != 'function' && type != 'object') return false;
+    return true;
+  }
+
   function strictDeepEqual(first, second) {
     // Check the scalar case first.
     if (first === second) {
@@ -872,7 +879,7 @@
             case "Field":
               if (value === null ) {
                   return null;
-              } else if (isObject(value)) {
+              } else if (isTraversable(value)) {
                   field = value[node.name];
                   if (field === undefined) {
                       return null;
