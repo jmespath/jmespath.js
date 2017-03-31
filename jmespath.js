@@ -1167,6 +1167,10 @@
           _signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
         sum: {_func: this._functionSum, _signature: [{types: [TYPE_ARRAY_NUMBER]}]},
+        diff: {
+        	_func: this._functionDiff,        
+        	_signature: [{types: [TYPE_NUMBER]}, {types: [TYPE_NUMBER]}]
+        },
         "starts_with": {
             _func: this._functionStartsWith,
             _signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}]},
@@ -1603,6 +1607,12 @@
       return maxRecord;
     },
 
+    _functionDiff: function(resolvedArgs) {
+    	var first = resolvedArgs[0];
+    	var second = resolvedArgs[1];
+    	return first -second;
+    },
+    
     _functionMinBy: function(resolvedArgs) {
       var exprefNode = resolvedArgs[1];
       var resolvedArray = resolvedArgs[0];
