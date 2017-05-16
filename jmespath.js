@@ -140,6 +140,18 @@
   var TYPE_NULL = 7;
   var TYPE_ARRAY_NUMBER = 8;
   var TYPE_ARRAY_STRING = 9;
+  var TYPE_NAME_TABLE = {
+    0: 'number',
+    1: 'any',
+    2: 'string',
+    3: 'array',
+    4: 'object',
+    5: 'boolean',
+    6: 'expression',
+    7: 'null',
+    8: 'Array<number>',
+    9: 'Array<string>'
+  };
 
   var TOK_EOF = "EOF";
   var TOK_UNQUOTEDIDENTIFIER = "UnquotedIdentifier";
@@ -1237,11 +1249,16 @@
                 }
             }
             if (!typeMatched) {
+                var expected = currentSpec
+                    .map(function(typeIdentifier) {
+                        return TYPE_NAME_TABLE[typeIdentifier];
+                    })
+                    .join(',');
                 throw new Error("TypeError: " + name + "() " +
                                 "expected argument " + (i + 1) +
-                                " to be type " + currentSpec +
-                                " but received type " + actualType +
-                                " instead.");
+                                " to be type " + expected +
+                                " but received type " +
+                                TYPE_NAME_TABLE[actualType] + " instead.");
             }
         }
     },
