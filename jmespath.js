@@ -1122,7 +1122,7 @@
 
   };
 
-  function Runtime(interpreter) {
+  function Runtime(interpreter, options) {
     this._interpreter = interpreter;
     this.functionTable = {
         // name: [function, <signature>]
@@ -1203,6 +1203,13 @@
             _signature: [{types: [TYPE_ANY], variadic: true}]
         }
     };
+    if (options.functionTable) {
+      for (var property in options.functionTable) {
+        if (options.functionTable.hasOwnProperty(property)) {
+          this.functionTable[property] = options.functionTable[property];
+        }
+      }
+    }
   }
 
   Runtime.prototype = {
@@ -1653,12 +1660,12 @@
       return lexer.tokenize(stream);
   }
 
-  function search(data, expression) {
+  function search(data, expression, options) {
       var parser = new Parser();
       // This needs to be improved.  Both the interpreter and runtime depend on
       // each other.  The runtime needs the interpreter to support exprefs.
       // There's likely a clean way to avoid the cyclic dependency.
-      var runtime = new Runtime();
+      var runtime = new Runtime(undefined, options);
       var interpreter = new TreeInterpreter(runtime);
       runtime._interpreter = interpreter;
       var node = parser.parse(expression);
