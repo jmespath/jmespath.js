@@ -1203,7 +1203,7 @@
             _signature: [{types: [TYPE_ANY], variadic: true}]
         }
     };
-    if (options.functionTable) {
+    if (options && options.functionTable) {
       for (var property in options.functionTable) {
         if (options.functionTable.hasOwnProperty(property)) {
           this.functionTable[property] = options.functionTable[property];
