@@ -55,3 +55,46 @@ check out the [JMESPath libraries page](http://jmespath.org/libraries.html).
 
 And finally, the full JMESPath specification can be found
 on the [JMESPath site](http://jmespath.org/specification.html).
+
+## Custom Filter Functions
+
+As an extension to common JMESPath API and available in jmespath.js only,  
+custom filter functions can be specified through the ``functionTable`` 
+property of the optional third argument of the ``search`` function. 
+The custom functions can even call third-party 
+libraries via closure. The following example shows how a custom 
+filter function `contains_ci` is implemented with 
+[`lodash`](https://lodash.com/) library
+to provide case insensitive string matching
+
+```
+const jmespath = require('jmespath')
+const assert = require('assert')
+const _ = require('lodash')
+let res = jmespath.search([{ a: 'foo' }], "[?contains_ci(a, 'FOO')]", {
+            functionTable: {
+              /*jshint camelcase: false */
+              contains_ci: {
+                _func: function(resolvedArgs) {
+                  if (!resolvedArgs[0] || !resolvedArgs[1]) {
+                    return false
+                  }
+                  return (
+                    _.toLower(resolvedArgs[0]).indexOf(_.toLower(resolvedArgs[1])) >= 0
+                  )
+                },
+                _signature: [
+                  {
+                    types: [2]
+                  },
+                  {
+                    types: [2]
+                  }
+                ]
+              }
+            }
+          })
+assert.deepStrictEqual(res, [{ a: 'foo' }])
+```
+
+See [type constants](https://github.com/jmespath/jmespath.js/blob/master/jmespath.js#L132) for type mapping used by the example.
