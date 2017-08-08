@@ -261,6 +261,6 @@ describe('search', function() {
           }
         })
       } catch (e) {}
-      assert.deepStrictEqual(res, [{ a: 'foo' }])
+      strictDeepEqual(res, [{ a: 'foo' }])
     })
 });
