@@ -160,6 +160,7 @@ describe('tokenize', function() {
             ]
         );
     });
+
 });
 
 
@@ -223,4 +224,20 @@ describe('options', function() {
             resolveUnknownFunction: function(fn, args) { return { fn: fn, output: args[0]*2 };}}),
           { fn: "example", output: 12 });
     });
+});
+
+describe('search', function() {
+    it(
+        'should throw a readable error when invalid arguments are provided to a function',
+        function() {
+            try {
+                jmespath.search([], 'length(`null`)');
+            } catch (e) {
+                assert(e.message.search(
+                    'expected argument 1 to be type string,array,object'
+                ), e.message);
+                assert(e.message.search('received type null'), e.message);
+            }
+        }
+    );
 });
