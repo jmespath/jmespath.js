@@ -303,8 +303,11 @@
                   } else {
                       tokens.push({type: TOK_PIPE, value: "|", start: start});
                   }
+              } else if(stream[this._current] === "#") {
+                this.consumeComment(stream);
               } else {
                   var error = new Error("Unknown character:" + stream[this._current]);
+                  error.lineNumber = this.current;
                   error.name = "LexerError";
                   throw error;
               }
@@ -447,6 +450,18 @@
           return literal;
       },
 
+      consumeComment: function(stream) {
+          var start = this._current;
+          var maxLength = stream.length;
+          while(stream[this._current] !== "\n" && this._current < maxLength) {
+              this._current++;
+          }
+          var commentString = stream.slice(start, this._current).trimLeft();
+          // +1 gets us to the ending "\n", +1 to move on to the next char.
+          this._current++;
+          return commentString;
+      },
+
       _looksLikeJSON: function(literalString) {
           var startingChars = "[{\"";
           var jsonLiterals = ["true", "false", "null"];
@@ -511,8 +526,9 @@
           if (this._lookahead(0) !== TOK_EOF) {
               var t = this._lookaheadToken(0);
               var error = new Error(
-                  "Unexpected token type: " + t.type + ", value: " + t.value);
+                  "Unexpected token type: " + t.type + ", value: " + t.value + ", lineNumber: " + t.start);
               error.name = "ParserError";
+              error.lineNumber = t.start;
               throw error;
           }
           return ast;
@@ -705,6 +721,7 @@
           } else {
               var t = this._lookaheadToken(0);
               var error = new Error("Expected " + tokenType + ", got: " + t.type);
+              error.lineNumber = t.start;
               error.name = "ParserError";
               throw error;
           }
@@ -713,7 +730,9 @@
       _errorToken: function(token) {
           var error = new Error("Invalid token (" +
                                 token.type + "): \"" +
-                                token.value + "\"");
+                                token.value + ", lineNumber: \"" +
+                                token.start + "\"");
+          error.lineNumber = token.start;
           error.name = "ParserError";
           throw error;
       },
@@ -761,6 +780,7 @@
                   var t = this._lookahead(0);
                   var error = new Error("Syntax error, unexpected token: " +
                                         t.value + "(" + t.type + ")");
+                  error.lineNumber = t.start;
                   error.name = "Parsererror";
                   throw error;
               }
@@ -807,6 +827,7 @@
               var t = this._lookaheadToken(0);
               var error = new Error("Sytanx error, unexpected token: " +
                                     t.value + "(" + t.type + ")");
+              error.lineNumber = t.start;
               error.name = "ParserError";
               throw error;
           }
@@ -857,8 +878,37 @@
   };
 
 
+  function ScopeChain() {
+      this.scopes = [];
+  }
+
+  ScopeChain.prototype = {
+      pushScope: function(scope) {
+          this.scopes.push(scope);
+      },
+
+      popScope: function() {
+          this.scopes.pop();
+      },
+
+      resolveReference: function(name) {
+          var currentScope;
+          var currentValue;
+          for (var i = this.scopes.length - 1; i >= 0; i--) {
+              currentScope = this.scopes[i];
+              currentValue = currentScope[name];
+              if (currentValue !== undefined) {
+                  return currentValue;
+              }
+          }
+          return null;
+      }
+  };
+
   function TreeInterpreter(runtime) {
+    this.scopeChain = new ScopeChain();
     this.runtime = runtime;
+    this.runtime.scopeChain = this.scopeChain;
   }
 
   TreeInterpreter.prototype = {
@@ -871,12 +921,19 @@
           switch (node.type) {
             case "Field":
               if (value !== null && isObject(value)) {
-                  field = value[node.name];
-                  if (field === undefined) {
-                      return null;
-                  } else {
-                      return field;
-                  }
+                field = value[node.name];
+                if (field === undefined) {
+                    // If the field is not defined in the current scope,
+                    // fall back to the scope chain.
+                    return this.scopeChain.resolveReference(node.name);
+                } else {
+                    return field;
+                }
+              } else {
+                value = this.scopeChain.resolveReference(node.name);
+                if(value !== null && typeof value !== 'undefined') {
+                  return value;
+                }
               }
               return null;
             case "Subexpression":
@@ -1071,6 +1128,7 @@
               // Tag the node with a specific attribute so the type
               // checker verify the type.
               refNode.jmespathType = TOK_EXPREF;
+              refNode.context = value;
               return refNode;
             default:
               throw new Error("Unknown node type: " + node.type);
@@ -1122,8 +1180,10 @@
 
   };
 
-  function Runtime(interpreter) {
+  function Runtime(interpreter, scopeChain, options) {
     this._interpreter = interpreter;
+    this.scopeChain = scopeChain;
+    this.options = options || {};
     this.functionTable = {
         // name: [function, <signature>]
         // The <signature> can be:
@@ -1152,6 +1212,9 @@
         length: {
             _func: this._functionLength,
             _signature: [{types: [TYPE_STRING, TYPE_ARRAY, TYPE_OBJECT]}]},
+        let: {
+            _func: this.functionLet,
+            _signature: [{types: [TYPE_OBJECT]}, {types: [TYPE_EXPREF]}]},
         map: {
             _func: this._functionMap,
             _signature: [{types: [TYPE_EXPREF]}, {types: [TYPE_ARRAY]}]},
@@ -1209,7 +1272,10 @@
     callFunction: function(name, resolvedArgs) {
       var functionEntry = this.functionTable[name];
       if (functionEntry === undefined) {
-          throw new Error("Unknown function: " + name + "()");
+        if(this.options.resolveUnknownFunction) {
+          return this.options.resolveUnknownFunction(name, resolvedArgs, this);
+        }
+        throw new Error("Unknown function: " + name + "()");
       }
       this._validateArgs(name, resolvedArgs, functionEntry._signature);
       return functionEntry._func.call(this, resolvedArgs);
@@ -1625,6 +1691,18 @@
       return minRecord;
     },
 
+    functionLet: function(resolvedArgs) {
+      var scope = resolvedArgs[0];
+      var expref = resolvedArgs[1];
+      var interpreter = this._interpreter;
+      this.scopeChain.pushScope(scope);
+      try {
+          return interpreter.visit(expref, expref.context);
+      } finally {
+          this.scopeChain.popScope();
+      }
+    },
+
     createKeyFunction: function(exprefNode, allowedTypes) {
       var that = this;
       var interpreter = this._interpreter;
@@ -1653,16 +1731,19 @@
       return lexer.tokenize(stream);
   }
 
-  function search(data, expression) {
+  function search(data, expression, options) {
+      var node;
       var parser = new Parser();
       // This needs to be improved.  Both the interpreter and runtime depend on
       // each other.  The runtime needs the interpreter to support exprefs.
       // There's likely a clean way to avoid the cyclic dependency.
-      var runtime = new Runtime();
+      var runtime = new Runtime(undefined, undefined, options);
       var interpreter = new TreeInterpreter(runtime);
       runtime._interpreter = interpreter;
-      var node = parser.parse(expression);
-      return interpreter.search(node, data);
+      if(Object.prototype.toString.call(expression) === "[object String]") {
+        node = parser.parse(expression);
+      }
+      return interpreter.search(node || expression, data);
   }
 
   exports.tokenize = tokenize;
