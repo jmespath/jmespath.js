@@ -35,16 +35,16 @@ function addTestSuitesFromFile(filename) {
                         // for error tests.
                         (function(testcase, given) {
                           it('should throw error for test ' + j, function() {
-                              assert.throws(
-                                  function() {
-                                    search(given, testcase.expression);
+                              assert.rejects(
+                                  async function() {
+                                    await search(given, testcase.expression);
                                   }, Error, testcase.expression);
                           });
                         })(testcase, given);
                     } else {
                         (function(testcase, given) {
-                          it('should pass test ' + j + " expression: " + testcase.expression, function() {
-                              assert.deepEqual(search(given, testcase.expression),
+                          it('should pass test ' + j + " expression: " + testcase.expression, async function() {
+                              assert.deepStrictEqual(await search(given, testcase.expression),
                                                testcase.result);
                           });
                         })(testcase, given);

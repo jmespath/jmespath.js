@@ -1,13 +1,13 @@
 {
   "name": "jmespath",
   "description": "JMESPath implementation in javascript",
-  "version": "0.15.0",
+  "version": "1.0.0",
   "author": {
     "name": "James Saryerwinnie",
     "email": "js@jamesls.com",
     "url": "http://jamesls.com/"
   },
-  "homepage": "https://github.com/jmespath/jmespath.js",
+  "homepage": "https://github.com/f-w/jmespath.js",
   "contributors": [],
   "devDependencies": {
     "grunt": "^0.4.5",
@@ -22,7 +22,7 @@
     "test": "test"
   },
   "engines": {
-    "node": ">= 0.6.0"
+    "node": ">= 7.10.1"
   },
   "repository": {
     "type": "git",

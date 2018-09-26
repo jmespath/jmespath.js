@@ -231,4 +231,36 @@ describe('search', function() {
             }
         }
     );
+
+    it('should allow specify and use custom function', function() {
+      var res
+      try {
+        res = jmespath.search([{ a: 'foo' }], "[?contains_ci(a, 'FOO')]", {
+          functionTable: {
+            /*jshint camelcase: false */
+            contains_ci: {
+              _func: function(resolvedArgs) {
+                if (!resolvedArgs[0] || !resolvedArgs[1]) {
+                  return false
+                }
+                return (
+                  resolvedArgs[0]
+                    .toLowerCase()
+                    .indexOf(resolvedArgs[1].toLowerCase()) >= 0
+                )
+              },
+              _signature: [
+                {
+                  types: [2]
+                },
+                {
+                  types: [2]
+                }
+              ]
+            }
+          }
+        })
+      } catch (e) {}
+      strictDeepEqual(res, [{ a: 'foo' }])
+    })
 });
