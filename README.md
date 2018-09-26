@@ -13,7 +13,7 @@ you use, `jmespath.search`:
 
 ```
 > var jmespath = require('jmespath');
-> jmespath.search({foo: {bar: {baz: [0, 1, 2, 3, 4]}}}, "foo.bar.baz[2]")
+> await jmespath.search({foo: {bar: {baz: [0, 1, 2, 3, 4]}}}, "foo.bar.baz[2]")
 2
 ```
 
@@ -26,15 +26,15 @@ The JMESPath language can do a lot more than select an element
 from a list.  Here are a few more examples:
 
 ```
-> jmespath.search({foo: {bar: {baz: [0, 1, 2, 3, 4]}}}, "foo.bar")
+> await jmespath.search({foo: {bar: {baz: [0, 1, 2, 3, 4]}}}, "foo.bar")
 { baz: [ 0, 1, 2, 3, 4 ] }
 
-> jmespath.search({"foo": [{"first": "a", "last": "b"},
+> await jmespath.search({"foo": [{"first": "a", "last": "b"},
                            {"first": "c", "last": "d"}]},
                   "foo[*].first")
 [ 'a', 'c' ]
 
-> jmespath.search({"foo": [{"age": 20}, {"age": 25},
+> await jmespath.search({"foo": [{"age": 20}, {"age": 25},
                            {"age": 30}, {"age": 35},
                            {"age": 40}]},
                   "foo[?age > `30`]")
@@ -61,11 +61,9 @@ on the [JMESPath site](http://jmespath.org/specification.html).
 As an extension to common JMESPath API and available in jmespath.js only,  
 custom filter functions can be specified through the ``functionTable`` 
 property of the optional third argument of the ``search`` function. 
-The custom functions can even call third-party 
-libraries via closure. The following example shows how a custom 
-filter function `contains_ci` is implemented with 
-[`lodash`](https://lodash.com/) library
-to provide case insensitive string matching
+A custom function can even call third-party 
+libraries via closure. Custom functions can by asynchronous. The following example shows how a custom async filter function `contains_ci` is implemented with 
+[`lodash`](https://lodash.com/) library to provide case insensitive string matching
 
 ```
 const jmespath = require('jmespath')
@@ -75,13 +73,15 @@ let res = jmespath.search([{ a: 'foo' }], "[?contains_ci(a, 'FOO')]", {
             functionTable: {
               /*jshint camelcase: false */
               contains_ci: {
-                _func: function(resolvedArgs) {
+                _func: async function(resolvedArgs) {
                   if (!resolvedArgs[0] || !resolvedArgs[1]) {
                     return false
                   }
-                  return (
-                    _.toLower(resolvedArgs[0]).indexOf(_.toLower(resolvedArgs[1])) >= 0
-                  )
+                  return new Promise(resolve => {
+                    setTimeout(() => {
+                      resolve(_.toLower(resolvedArgs[0]).indexOf(_.toLower(resolvedArgs[1])) >= 0)
+                    }, 1000)
+                  })
                 },
                 _signature: [
                   {
@@ -94,7 +94,7 @@ let res = jmespath.search([{ a: 'foo' }], "[?contains_ci(a, 'FOO')]", {
               }
             }
           })
-assert.deepStrictEqual(res, [{ a: 'foo' }])
+res.then(val => assert.deepStrictEqual(val, [{ a: 'foo' }]))
 ```
 
 See [type constants](https://github.com/jmespath/jmespath.js/blob/master/jmespath.js#L132) for type mapping used by the example.
