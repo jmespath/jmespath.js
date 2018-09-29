@@ -12,9 +12,11 @@ you use, `jmespath.search`:
 
 
 ```
-> var jmespath = require('jmespath');
-> jmespath.search({foo: {bar: {baz: [0, 1, 2, 3, 4]}}}, "foo.bar.baz[2]")
-2
+var jmespath = require('jmespath');
+
+jmespath.search({foo: {bar: {baz: [0, 1, 2, 3, 4]}}}, "foo.bar.baz[2]")
+
+// output: 2
 ```
 
 In the example we gave the ``search`` function input data of
@@ -26,19 +28,36 @@ The JMESPath language can do a lot more than select an element
 from a list.  Here are a few more examples:
 
 ```
-> jmespath.search({foo: {bar: {baz: [0, 1, 2, 3, 4]}}}, "foo.bar")
-{ baz: [ 0, 1, 2, 3, 4 ] }
+jmespath.search({
+  foo: {
+    bar: {
+      baz: [0, 1, 2, 3, 4]
+    }
+  }
+}, "foo.bar")
 
-> jmespath.search({"foo": [{"first": "a", "last": "b"},
-                           {"first": "c", "last": "d"}]},
-                  "foo[*].first")
-[ 'a', 'c' ]
+// output: { baz: [ 0, 1, 2, 3, 4 ] }
 
-> jmespath.search({"foo": [{"age": 20}, {"age": 25},
-                           {"age": 30}, {"age": 35},
-                           {"age": 40}]},
-                  "foo[?age > `30`]")
-[ { age: 35 }, { age: 40 } ]
+jmespath.search({
+  "foo": [
+    {"first": "a", "last": "b"},
+    {"first": "c", "last": "d"}
+  ]
+}, "foo[*].first")
+
+// output: [ 'a', 'c' ]
+
+jmespath.search({
+  "foo": [
+    {"age": 20}, 
+    {"age": 25},
+    {"age": 30}, 
+    {"age": 35},
+    {"age": 40}
+  ]
+}, "foo[?age > `30`]")
+
+// ouput: [ { age: 35 }, { age: 40 } ]
 ```
 
 ## More Resources
