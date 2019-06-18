@@ -233,6 +233,30 @@
              ch === "_";
   }
 
+  function createErrorClass(className) {
+    function ExtendedError(message) {
+      var instance = new Error(message);
+      instance.name = className;
+      Object.setPrototypeOf(instance, Object.getPrototypeOf(this));
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(instance, ExtendedError);
+      }
+      return instance;
+    }
+    ExtendedError.prototype = Object.create(Error.prototype, {
+      constructor: {
+        value: Error,
+        enumerable: false,
+        writeable: true,
+        configurable: true,
+      },
+    });
+
+    return ExtendedError;
+  }
+
+  var LexerError = createErrorClass("LexerError");
+
   function Lexer() {
   }
   Lexer.prototype = {
@@ -304,8 +328,7 @@
                       tokens.push({type: TOK_PIPE, value: "|", start: start});
                   }
               } else {
-                  var error = new Error("Unknown character:" + stream[this._current]);
-                  error.name = "LexerError";
+                  var error = new LexerError("Unknown character:" + stream[this._current]);
                   throw error;
               }
           }
@@ -500,6 +523,8 @@
       bindingPower[TOK_LBRACKET] = 55;
       bindingPower[TOK_LPAREN] = 60;
 
+  var ParserError = createErrorClass("ParserError");
+
   function Parser() {
   }
 
@@ -510,9 +535,8 @@
           var ast = this.expression(0);
           if (this._lookahead(0) !== TOK_EOF) {
               var t = this._lookaheadToken(0);
-              var error = new Error(
+              var error = new ParserError(
                   "Unexpected token type: " + t.type + ", value: " + t.value);
-              error.name = "ParserError";
               throw error;
           }
           return ast;
@@ -562,7 +586,7 @@
           case TOK_QUOTEDIDENTIFIER:
             var node = {type: "Field", name: token.value};
             if (this._lookahead(0) === TOK_LPAREN) {
-                throw new Error("Quoted identifier not allowed for function names.");
+                throw new ParserError("Quoted identifier not allowed for function names.");
             }
             return node;
           case TOK_NOT:
@@ -704,17 +728,15 @@
               this._advance();
           } else {
               var t = this._lookaheadToken(0);
-              var error = new Error("Expected " + tokenType + ", got: " + t.type);
-              error.name = "ParserError";
+              var error = new ParserError("Expected " + tokenType + ", got: " + t.type);
               throw error;
           }
       },
 
       _errorToken: function(token) {
-          var error = new Error("Invalid token (" +
+          var error = new ParserError("Invalid token (" +
                                 token.type + "): \"" +
                                 token.value + "\"");
-          error.name = "ParserError";
           throw error;
       },
 
@@ -759,9 +781,8 @@
                   this._advance();
               } else {
                   var t = this._lookahead(0);
-                  var error = new Error("Syntax error, unexpected token: " +
+                  var error = new ParserError("Syntax error, unexpected token: " +
                                         t.value + "(" + t.type + ")");
-                  error.name = "Parsererror";
                   throw error;
               }
               currentToken = this._lookahead(0);
@@ -805,9 +826,8 @@
               right = this._parseDotRHS(rbp);
           } else {
               var t = this._lookaheadToken(0);
-              var error = new Error("Sytanx error, unexpected token: " +
+              var error = new ParserError("Syntax error, unexpected token: " +
                                     t.value + "(" + t.type + ")");
-              error.name = "ParserError";
               throw error;
           }
           return right;
@@ -821,7 +841,7 @@
               if (this._lookahead(0) === TOK_COMMA) {
                   this._match(TOK_COMMA);
                   if (this._lookahead(0) === TOK_RBRACKET) {
-                    throw new Error("Unexpected token Rbracket");
+                    throw new ParserError("Unexpected token Rbracket");
                   }
               }
           }
@@ -836,7 +856,7 @@
         for (;;) {
           keyToken = this._lookaheadToken(0);
           if (identifierTypes.indexOf(keyToken.type) < 0) {
-            throw new Error("Expecting an identifier token, got: " +
+            throw new ParserError("Expecting an identifier token, got: " +
                             keyToken.type);
           }
           keyName = keyToken.value;
@@ -856,6 +876,7 @@
       }
   };
 
+  var InterpreterError = createErrorClass("InterpreterError");
 
   function TreeInterpreter(runtime) {
     this.runtime = runtime;
@@ -997,7 +1018,7 @@
                   result = first <= second;
                   break;
                 default:
-                  throw new Error("Unknown comparator: " + node.name);
+                  throw new InterpreterError("Unknown comparator: " + node.name);
               }
               return result;
             case TOK_FLATTEN:
@@ -1073,7 +1094,7 @@
               refNode.jmespathType = TOK_EXPREF;
               return refNode;
             default:
-              throw new Error("Unknown node type: " + node.type);
+              throw new InterpreterError("Unknown node type: " + node.type);
           }
       },
 
@@ -1121,6 +1142,10 @@
       }
 
   };
+
+  var RuntimeError = createErrorClass("RuntimeError");
+  var ArgumentError = createErrorClass("ArgumentError");
+  var TypeMismatchError = createErrorClass("TypeMismatchError");
 
   function Runtime(interpreter) {
     this._interpreter = interpreter;
@@ -1209,7 +1234,7 @@
     callFunction: function(name, resolvedArgs) {
       var functionEntry = this.functionTable[name];
       if (functionEntry === undefined) {
-          throw new Error("Unknown function: " + name + "()");
+          throw new RuntimeError("Unknown function: " + name + "()");
       }
       this._validateArgs(name, resolvedArgs, functionEntry._signature);
       return functionEntry._func.call(this, resolvedArgs);
@@ -1225,13 +1250,13 @@
         if (signature[signature.length - 1].variadic) {
             if (args.length < signature.length) {
                 pluralized = signature.length === 1 ? " argument" : " arguments";
-                throw new Error("ArgumentError: " + name + "() " +
+                throw new ArgumentError(name + "() " +
                                 "takes at least" + signature.length + pluralized +
                                 " but received " + args.length);
             }
         } else if (args.length !== signature.length) {
             pluralized = signature.length === 1 ? " argument" : " arguments";
-            throw new Error("ArgumentError: " + name + "() " +
+            throw new ArgumentError(name + "() " +
                             "takes " + signature.length + pluralized +
                             " but received " + args.length);
         }
@@ -1254,7 +1279,7 @@
                         return TYPE_NAME_TABLE[typeIdentifier];
                     })
                     .join(',');
-                throw new Error("TypeError: " + name + "() " +
+                throw new TypeMismatchError(name + "() " +
                                 "expected argument " + (i + 1) +
                                 " to be type " + expected +
                                 " but received type " +
@@ -1547,7 +1572,7 @@
         var requiredType = this._getTypeName(
             interpreter.visit(exprefNode, sortedArray[0]));
         if ([TYPE_NUMBER, TYPE_STRING].indexOf(requiredType) < 0) {
-            throw new Error("TypeError");
+            throw new TypeMismatchError("Array elements must be of type Number or String to sort");
         }
         var that = this;
         // In order to get a stable sort out of an unstable
@@ -1565,12 +1590,12 @@
           var exprA = interpreter.visit(exprefNode, a[1]);
           var exprB = interpreter.visit(exprefNode, b[1]);
           if (that._getTypeName(exprA) !== requiredType) {
-              throw new Error(
-                  "TypeError: expected " + requiredType + ", received " +
+              throw new TypeMismatchError(
+                  "expected " + requiredType + ", received " +
                   that._getTypeName(exprA));
           } else if (that._getTypeName(exprB) !== requiredType) {
-              throw new Error(
-                  "TypeError: expected " + requiredType + ", received " +
+              throw new TypeMismatchError(
+                  "expected " + requiredType + ", received " +
                   that._getTypeName(exprB));
           }
           if (exprA > exprB) {
@@ -1631,9 +1656,9 @@
       var keyFunc = function(x) {
         var current = interpreter.visit(exprefNode, x);
         if (allowedTypes.indexOf(that._getTypeName(current)) < 0) {
-          var msg = "TypeError: expected one of " + allowedTypes +
+          var msg = "expected one of " + allowedTypes +
                     ", received " + that._getTypeName(current);
-          throw new Error(msg);
+          throw new TypeMismatchError(msg);
         }
         return current;
       };

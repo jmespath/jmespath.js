@@ -227,6 +227,7 @@ describe('search', function() {
                 assert(e.message.search(
                     'expected argument 1 to be type string,array,object'
                 ), e.message);
+                assert.strictEqual(e.name, 'TypeMismatchError');
                 assert(e.message.search('received type null'), e.message);
             }
         }
