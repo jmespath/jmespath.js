@@ -9,8 +9,8 @@ module.exports = function(grunt) {
         mangleProperties: {regex: /^_/}
       },
       build: {
-        src: '<%= pkg.name %>.js',
-        dest: 'artifacts/<%= pkg.name %>.min.js'
+        src: 'jmespath.js',
+        dest: 'artifacts/jmespath.min.js'
       }
     },
     jshint: {
