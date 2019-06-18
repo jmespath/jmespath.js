@@ -1,7 +1,7 @@
 {
   "name": "@chris-armstrong/jmespath",
   "description": "JMESPath implementation in javascript",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "James Saryerwinnie",
     "email": "js@jamesls.com",
