@@ -234,12 +234,23 @@
   }
 
   function createErrorClass(className) {
-    var ExtendedError = function (message) {
-      Error.call(this, message);
-      this.name = className;
+    function ExtendedError(message) {
+      var instance = new Error(message);
+      instance.name = className;
+      Object.setPrototypeOf(instance, Object.getPrototypeOf(this));
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(instance, ExtendedError)
+      }
+      return instance;
     };
-    ExtendedError.prototype = Object.create(Error.prototype);
-    ExtendedError.prototype.constructor = ExtendedError;
+    ExtendedError.prototype = Object.create(Error.prototype, {
+      constructor: {
+        value: Error,
+        enumerable: false,
+        writeable: true,
+        configurable: true,
+      },
+    });
 
     return ExtendedError;
   }
