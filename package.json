@@ -1,5 +1,5 @@
 {
-  "name": "jmespath",
+  "name": "@gorillastack/jmespath",
   "description": "JMESPath implementation in javascript",
   "version": "0.15.0",
   "author": {
@@ -26,10 +26,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/jmespath/jmespath.js"
+    "url": "git://github.com/GorillaStack/jmespath.js"
   },
   "bugs": {
-    "url": "http://github.com/jmespath/jmespath.js/issues",
+    "url": "http://github.com/GorillaStack/jmespath.js/issues",
     "mail": ""
   },
   "license": "Apache-2.0",
