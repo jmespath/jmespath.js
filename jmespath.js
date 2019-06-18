@@ -239,10 +239,10 @@
       instance.name = className;
       Object.setPrototypeOf(instance, Object.getPrototypeOf(this));
       if (Error.captureStackTrace) {
-        Error.captureStackTrace(instance, ExtendedError)
+        Error.captureStackTrace(instance, ExtendedError);
       }
       return instance;
-    };
+    }
     ExtendedError.prototype = Object.create(Error.prototype, {
       constructor: {
         value: Error,
