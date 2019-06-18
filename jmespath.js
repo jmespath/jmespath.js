@@ -237,7 +237,7 @@
     var ExtendedError = function (message) {
       Error.call(this, message);
       this.name = className;
-    }
+    };
     ExtendedError.prototype = Object.create(Error.prototype);
     ExtendedError.prototype.constructor = ExtendedError;
 
