@@ -1667,10 +1667,25 @@
 
   };
 
+  function createInterpreter() {
+      // This needs to be improved.  Both the interpreter and runtime depend on
+      // each other.  The runtime needs the interpreter to support exprefs.
+      // There's likely a clean way to avoid the cyclic dependency.
+      var runtime = new Runtime();
+      var interpreter = new TreeInterpreter(runtime);
+      runtime._interpreter = interpreter;
+      return interpreter;
+  }
+
   function compile(stream) {
-    var parser = new Parser();
-    var ast = parser.parse(stream);
-    return ast;
+      var parser = new Parser();
+      var ast = parser.parse(stream);
+      return ast;
+  }
+
+  function interpret(data, astNode) {
+      var interpreter = createInterpreter();
+      return interpreter.search(astNode, data);
   }
 
   function tokenize(stream) {
@@ -1680,18 +1695,14 @@
 
   function search(data, expression) {
       var parser = new Parser();
-      // This needs to be improved.  Both the interpreter and runtime depend on
-      // each other.  The runtime needs the interpreter to support exprefs.
-      // There's likely a clean way to avoid the cyclic dependency.
-      var runtime = new Runtime();
-      var interpreter = new TreeInterpreter(runtime);
-      runtime._interpreter = interpreter;
+      var interpreter = createInterpreter();
       var node = parser.parse(expression);
       return interpreter.search(node, data);
   }
 
   exports.tokenize = tokenize;
   exports.compile = compile;
+  exports.interpret = interpret;
   exports.search = search;
   exports.strictDeepEqual = strictDeepEqual;
 })(typeof exports === "undefined" ? this.jmespath = {} : exports);
