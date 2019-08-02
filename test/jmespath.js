@@ -3,7 +3,7 @@ var jmespath = require('../jmespath');
 var tokenize = jmespath.tokenize;
 var compile = jmespath.compile;
 var strictDeepEqual = jmespath.strictDeepEqual;
-
+var interpret = jmespath.interpret;
 
 describe('tokenize', function() {
     it('should tokenize unquoted identifier', function() {
@@ -214,6 +214,14 @@ describe('strictDeepEqual', function() {
         assert.strictEqual(
             strictDeepEqual({a: {b: [1, 2]}},
                             {a: {b: [1, 4]}}), false);
+    });
+});
+
+describe('interpret', function() {
+    it('should allow the compile and interpret phase to be run separately', function() {
+        var ast = compile('foo');
+        var result = interpret({ foo: 5, bar: 6 }, ast);
+        assert.strictEqual(result, 5);
     });
 });
 
