@@ -1,13 +1,19 @@
 {
-  "name": "@chris-armstrong/jmespath",
+  "name": "@gorillastack/jmespath",
   "description": "JMESPath implementation in javascript",
   "version": "1.1.0",
-  "author": {
-    "name": "James Saryerwinnie",
-    "email": "js@jamesls.com",
-    "url": "http://jamesls.com/"
-  },
-  "homepage": "https://github.com/jmespath/jmespath.js",
+  "authors": [
+    {
+      "name": "James Saryerwinnie",
+      "email": "js@jamesls.com",
+      "url": "http://jamesls.com/"
+    },
+    {
+      "name": "Chris Armstrong",
+      "url": "https://github.com/chris-armstrong"
+    }
+  ],
+  "homepage": "https://github.com/GorillaStack/jmespath.js",
   "contributors": [],
   "devDependencies": {
     "grunt": "^1.0.4",
