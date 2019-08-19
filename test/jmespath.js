@@ -3,7 +3,7 @@ var jmespath = require('../jmespath');
 var tokenize = jmespath.tokenize;
 var compile = jmespath.compile;
 var strictDeepEqual = jmespath.strictDeepEqual;
-
+var interpret = jmespath.interpret;
 
 describe('tokenize', function() {
     it('should tokenize unquoted identifier', function() {
@@ -217,6 +217,14 @@ describe('strictDeepEqual', function() {
     });
 });
 
+describe('interpret', function() {
+    it('should allow the compile and interpret phase to be run separately', function() {
+        var ast = compile('foo');
+        var result = interpret({ foo: 5, bar: 6 }, ast);
+        assert.strictEqual(result, 5);
+    });
+});
+
 describe('search', function() {
     it(
         'should throw a readable error when invalid arguments are provided to a function',
@@ -227,6 +235,7 @@ describe('search', function() {
                 assert(e.message.search(
                     'expected argument 1 to be type string,array,object'
                 ), e.message);
+                assert.strictEqual(e.name, 'TypeMismatchError');
                 assert(e.message.search('received type null'), e.message);
             }
         }
