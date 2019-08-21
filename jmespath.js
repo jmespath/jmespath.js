@@ -1347,13 +1347,16 @@
     },
 
     _functionStartsWith: function(resolvedArgs) {
-        return resolvedArgs[0].lastIndexOf(resolvedArgs[1]) === 0;
+        var searchStr = resolvedArgs[0];
+        var suffix = resolvedArgs[1];
+
+        return searchStr.startsWith(suffix);
     },
 
     _functionEndsWith: function(resolvedArgs) {
         var searchStr = resolvedArgs[0];
         var suffix = resolvedArgs[1];
-        return searchStr.indexOf(suffix, searchStr.length - suffix.length) !== -1;
+        return searchStr.endsWith(suffix);
     },
 
     _functionReverse: function(resolvedArgs) {
