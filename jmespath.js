@@ -1210,6 +1210,10 @@
           _func: this._functionSortBy,
           _signature: [{types: [TYPE_ARRAY]}, {types: [TYPE_EXPREF]}]
         },
+        split: {
+          _func: this._functionSplit,
+          _signature: [{types: [TYPE_STRING]}, {types: [TYPE_STRING]}, { optional: true, types: [TYPE_NUMBER]}]
+        },
         join: {
             _func: this._functionJoin,
             _signature: [
@@ -1247,17 +1251,25 @@
         // a minimum number of args to be required.  Otherwise it has to
         // be an exact amount.
         var pluralized;
-        if (signature[signature.length - 1].variadic) {
+        var minimumLength = signature.filter(function(argument) { return argument.optional !== true; }).length;
+        var maximumLength = signature.length;
+        var isVariadic = signature[signature.length - 1].variadic;
+        if (isVariadic) {
             if (args.length < signature.length) {
                 pluralized = signature.length === 1 ? " argument" : " arguments";
                 throw new ArgumentError(name + "() " +
                                 "takes at least" + signature.length + pluralized +
                                 " but received " + args.length);
             }
-        } else if (args.length !== signature.length) {
-            pluralized = signature.length === 1 ? " argument" : " arguments";
+        } else if (args.length < minimumLength) {
+            pluralized = minimumLength === 1 ? " argument" : " arguments";
             throw new ArgumentError(name + "() " +
-                            "takes " + signature.length + pluralized +
+                            "takes at least" + minimumLength + pluralized +
+                            " but received " + args.length);
+        } else if (args.length > maximumLength) {
+            pluralized = maximumLength === 1 ? " argument" : " arguments";
+            throw new ArgumentError(name + "() " +
+                            "takes at most" + maximumLength + pluralized +
                             " but received " + args.length);
         }
         var currentSpec;
@@ -1266,6 +1278,9 @@
         for (var i = 0; i < signature.length; i++) {
             typeMatched = false;
             currentSpec = signature[i].types;
+            if (typeof args[i] === 'undefined' && signature[i].optional) {
+              break;
+            }
             actualType = this._getTypeName(args[i]);
             for (var j = 0; j < currentSpec.length; j++) {
                 if (this._typeMatches(actualType, currentSpec[j], args[i])) {
@@ -1470,6 +1485,27 @@
       } else {
         return null;
       }
+    },
+
+    _functionSplit: function(resolvedArgs) {
+      /** @type {string} */
+      var subject = resolvedArgs[0];
+      /** @type {string} */
+      var split = resolvedArgs[1];
+      /** @type {number|undefined} */
+      var max = resolvedArgs[2];
+
+      var result = subject.split(split);
+      if (typeof max === 'number') {
+        if (max === 0) {
+          result = [subject]; // no split
+        } else if (max > 0) {
+          // limit to the max length, with the last entry containing the remainder
+          result = result.slice(0, max - 1).concat([result.slice(max - 1).join(split)]);
+        }
+        // else - treat negative values the same as 'undefined'
+      }
+      return result;
     },
 
     _functionSum: function(resolvedArgs) {
