@@ -46,12 +46,20 @@ from a list.  Here are a few more examples:
 The example above only show a small amount of what
 a JMESPath expression can do.  If you want to take a
 tour of the language, the *best* place to go is the
-[JMESPath Tutorial](http://jmespath.org/tutorial.html).
+[JMESPath Tutorial](https://gorillastack-jmespath.netlify.com/tutorial.html).
 
 One of the best things about JMESPath is that it is
 implemented in many different programming languages including
 python, ruby, php, lua, etc.  To see a complete list of libraries,
-check out the [JMESPath libraries page](http://jmespath.org/libraries.html).
+check out the [JMESPath libraries page](https://gorillastack-jmespath.netlify.com/libraries.html).
 
 And finally, the full JMESPath specification can be found
-on the [JMESPath site](http://jmespath.org/specification.html).
+on the [JMESPath site](https://gorillastack-jmespath.netlify.com/specification.html).
+
+## Contributing
+
+Although this is a copy of the original jmespath.js repository, we are
+accepting contributions!
+
+Please see our [Contribution Guidelines](CONTRIBUTING.md) and our
+[Code of Conduct](CODE_OF_CONDUCT.md).
