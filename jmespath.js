@@ -1654,19 +1654,27 @@
   }
 
   function search(data, expression) {
+      return decorate({})(data, expression);
+  }
+
+  function decorate(fns) {
       var parser = new Parser();
       // This needs to be improved.  Both the interpreter and runtime depend on
       // each other.  The runtime needs the interpreter to support exprefs.
       // There's likely a clean way to avoid the cyclic dependency.
       var runtime = new Runtime();
+      Object.assign(runtime.functionTable, fns);
       var interpreter = new TreeInterpreter(runtime);
       runtime._interpreter = interpreter;
-      var node = parser.parse(expression);
-      return interpreter.search(node, data);
+      return function(data, expression) {
+          var node = parser.parse(expression);
+          return interpreter.search(node, data);
+      }
   }
 
   exports.tokenize = tokenize;
   exports.compile = compile;
   exports.search = search;
+  exports.decorate = decorate;
   exports.strictDeepEqual = strictDeepEqual;
 })(typeof exports === "undefined" ? this.jmespath = {} : exports);

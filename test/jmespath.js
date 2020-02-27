@@ -232,3 +232,20 @@ describe('search', function() {
         }
     );
 });
+
+describe('decorate', function() {
+  it(
+    'should call a custom function when called via decorator',
+    function() {
+      var TYPE_NUMBER = 0;
+      function customFunc(resolvedArgs) {
+        return resolvedArgs[0] + 99;
+      }
+      var extraFunctions = {
+        custom: {_func: customFunc, _signature: [{types: [TYPE_NUMBER]}]},
+      };
+      var value = jmespath.decorate(extraFunctions)([], 'custom(`1`)');
+      assert.strictEqual(value, 100);
+    }
+  );
+});
