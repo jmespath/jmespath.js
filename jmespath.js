@@ -212,6 +212,7 @@
   var skipChars = {
       " ": true,
       "\t": true,
+      "\r": true,
       "\n": true
   };
 
