@@ -1654,7 +1654,7 @@
   }
 
   function search(data, expression) {
-      return decorate({})(data, expression);
+      return decorate({})(expression)(data);
   }
 
   function decorate(fns) {
@@ -1666,9 +1666,11 @@
       Object.assign(runtime.functionTable, fns);
       var interpreter = new TreeInterpreter(runtime);
       runtime._interpreter = interpreter;
-      return function(data, expression) {
-          var node = parser.parse(expression);
+      return function (expression) {
+        var node = parser.parse(expression);
+        return function (data) {
           return interpreter.search(node, data);
+        }
       }
   }
 
