@@ -806,7 +806,7 @@
               right = this._parseDotRHS(rbp);
           } else {
               var t = this._lookaheadToken(0);
-              var error = new Error("Sytanx error, unexpected token: " +
+              var error = new Error("Syntax error, unexpected token: " +
                                     t.value + "(" + t.type + ")");
               error.name = "ParserError";
               throw error;
