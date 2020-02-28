@@ -1679,8 +1679,8 @@
         var node = parser.parse(expression);
         return function (data) {
           return interpreter.search(node, data);
-        }
-      }
+        };
+      };
   }
 
   exports.tokenize = tokenize;
