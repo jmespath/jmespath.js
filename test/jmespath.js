@@ -259,3 +259,20 @@ describe('decorate', function() {
     }
   );
 });
+
+describe('root', function() {
+  it(
+    '$ should give access to the root value',
+    function() {
+      var value = jmespath.search({ foo: { bar: 1 }}, 'foo.{ value: $.foo.bar }');
+      assert.equal(value.value, 1);
+    }
+  );
+  it(
+    '$ should give access to the root value after pipe',
+    function() {
+      var value = jmespath.search({ foo: { bar: 1 }}, 'foo | $.foo.bar');
+      assert.strictEqual(value, 1);
+    }
+  );
+});

@@ -163,6 +163,7 @@
   var TOK_RBRACE = "Rbrace";
   var TOK_NUMBER = "Number";
   var TOK_CURRENT = "Current";
+  var TOK_ROOT = "Root";
   var TOK_EXPREF = "Expref";
   var TOK_PIPE = "Pipe";
   var TOK_OR = "Or";
@@ -199,7 +200,8 @@
     "]": TOK_RBRACKET,
     "(": TOK_LPAREN,
     ")": TOK_RPAREN,
-    "@": TOK_CURRENT
+    "@": TOK_CURRENT,
+    "$": TOK_ROOT,
   };
 
   var operatorStartToken = {
@@ -482,6 +484,7 @@
       bindingPower[TOK_RBRACE] = 0;
       bindingPower[TOK_NUMBER] = 0;
       bindingPower[TOK_CURRENT] = 0;
+      bindingPower[TOK_ROOT] = 0;
       bindingPower[TOK_EXPREF] = 0;
       bindingPower[TOK_PIPE] = 1;
       bindingPower[TOK_OR] = 2;
@@ -603,6 +606,8 @@
             return this._parseMultiselectList();
           case TOK_CURRENT:
             return {type: TOK_CURRENT};
+          case TOK_ROOT:
+            return {type: TOK_ROOT};
           case TOK_EXPREF:
             expression = this.expression(bindingPower.Expref);
             return {type: "ExpressionReference", children: [expression]};
@@ -864,6 +869,7 @@
 
   TreeInterpreter.prototype = {
       search: function(node, value) {
+          this._rootValue = value;
           return this.visit(node, value);
       },
 
@@ -1061,6 +1067,8 @@
               return this.visit(node.children[1], left);
             case TOK_CURRENT:
               return value;
+            case TOK_ROOT:
+              return this._rootValue;
             case "Function":
               var resolvedArgs = [];
               for (i = 0; i < node.children.length; i++) {
