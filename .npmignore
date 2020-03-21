@@ -1,0 +1,7 @@
+test/
+*.*
+!*.js
+!*.json
+pref.js
+Gruntfile.js
+BASELINE
