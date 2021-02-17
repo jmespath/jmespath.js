@@ -76,7 +76,9 @@
       "False": false,
       "Number": 5,
       "EmptyList": [],
-      "Zero": 0
+      "Zero": 0,
+      "String": "foo",
+      "Null": null
     },
     "cases": [
       {
@@ -198,6 +200,30 @@
       {
         "expression": "!!Zero",
         "result": true
+      },
+      {
+        "expression": "String < Number",
+        "result": null
+      },
+      {
+        "expression": "Number < String",
+        "result": null
+      },
+      {
+        "expression": "Null < Number",
+        "result": null
+      },
+      {
+        "expression": "Number < Null",
+        "result": null
+      },
+      {
+        "expression": "Null < String",
+        "result": null
+      },
+      {
+        "expression": "String < Null",
+        "result": null
       }
     ]
   },

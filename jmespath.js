@@ -67,6 +67,11 @@
     return false;
   }
 
+  // Ordering operators are only valid for numbers
+  function compareable(first, second) {
+    return (typeof first === 'number' && typeof second === 'number');
+  }
+
   function isFalse(obj) {
     // From the spec:
     // A false value corresponds to the following values:
@@ -985,16 +990,16 @@
                   result = !strictDeepEqual(first, second);
                   break;
                 case TOK_GT:
-                  result = first > second;
+                  result = compareable(first, second) ? first > second : null;
                   break;
                 case TOK_GTE:
-                  result = first >= second;
+                  result = compareable(first, second) ? first >= second : null;
                   break;
                 case TOK_LT:
-                  result = first < second;
+                  result = compareable(first, second) ? first < second : null;
                   break;
                 case TOK_LTE:
-                  result = first <= second;
+                  result = compareable(first, second) ? first <= second : null;
                   break;
                 default:
                   throw new Error("Unknown comparator: " + node.name);
