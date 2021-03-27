@@ -1671,6 +1671,14 @@
       return interpreter.search(node, data);
   }
 
+  function exec(ast, data) {
+      var runtime = new Runtime();
+      var interpreter = new TreeInterpreter(runtime);
+      runtime._interpreter = interpreter;
+      return interpreter.visit(ast, data);
+  }
+
+  exports.exec = exec;
   exports.tokenize = tokenize;
   exports.compile = compile;
   exports.search = search;
