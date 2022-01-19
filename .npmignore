@@ -2,6 +2,5 @@ test/
 *.*
 !*.js
 !*.json
-pref.js
+perf.js
 Gruntfile.js
-BASELINE
