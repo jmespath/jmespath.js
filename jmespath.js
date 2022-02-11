@@ -219,6 +219,7 @@
   function isAlpha(ch) {
       return (ch >= "a" && ch <= "z") ||
              (ch >= "A" && ch <= "Z") ||
+             (ch >= "À" && ch <= "ú") ||
              ch === "_";
   }
 
@@ -229,6 +230,7 @@
   function isAlphaNum(ch) {
       return (ch >= "a" && ch <= "z") ||
              (ch >= "A" && ch <= "Z") ||
+             (ch >= "À" && ch <= "ú") ||
              (ch >= "0" && ch <= "9") ||
              ch === "_";
   }
