@@ -232,3 +232,47 @@ describe('search', function() {
         }
     );
 });
+
+describe('decorate', function() {
+  it(
+    'should call a custom function when called via decorator',
+    function() {
+      var TYPE_NUMBER = 0;
+      function customFunc(resolvedArgs) {
+        return resolvedArgs[0] + 99;
+      }
+      var extraFunctions = {
+        custom: {_func: customFunc, _signature: [{types: [TYPE_NUMBER]}]},
+      };
+      var value = jmespath.decorate(extraFunctions)('custom(`1`)')({});
+      assert.strictEqual(value, 100);
+    }
+  );
+  it(
+    'should provide a compiled expression that can be cached and reused',
+    function() {
+      var expr = jmespath.decorate({})('a');
+      var value = expr({ a: 1 });
+      assert.strictEqual(value, 1);
+      value = expr({ a: 2 });
+      assert.strictEqual(value, 2);
+    }
+  );
+});
+
+describe('root', function() {
+  it(
+    '$ should give access to the root value',
+    function() {
+      var value = jmespath.search({ foo: { bar: 1 }}, 'foo.{ value: $.foo.bar }');
+      assert.equal(value.value, 1);
+    }
+  );
+  it(
+    '$ should give access to the root value after pipe',
+    function() {
+      var value = jmespath.search({ foo: { bar: 1 }}, 'foo | $.foo.bar');
+      assert.strictEqual(value, 1);
+    }
+  );
+});

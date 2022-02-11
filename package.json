@@ -10,11 +10,11 @@
   "homepage": "https://github.com/jmespath/jmespath.js",
   "contributors": [],
   "devDependencies": {
-    "grunt": "^0.4.5",
-    "grunt-contrib-jshint": "^0.11.0",
+    "grunt": "^1.0.4",
+    "grunt-contrib-jshint": "^2.1.0",
     "grunt-contrib-uglify": "^0.11.1",
-    "grunt-eslint": "^17.3.1",
-    "mocha": "^2.1.0"
+    "grunt-eslint": "^22.0.0",
+    "mocha": "^7.1.0"
   },
   "dependencies": {},
   "main": "jmespath.js",
