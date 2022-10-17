@@ -129,6 +129,26 @@
     };
   }
 
+  function compareStringsByCodePoints(a, b) {
+      var ia = 0;
+      var ib = 0;
+      while (true) {
+          // Offset each code point by 1, leaving 0 for end of string.
+          var aCodePoint = (a.codePointAt(ia) + 1) || 0;
+          var bCodePoint = (b.codePointAt(ib) + 1) || 0;
+          var result = aCodePoint - bCodePoint;
+          if (result) {
+              return result;
+          } else if (!aCodePoint) {
+              // Having reached the end of both strings, they must be equal.
+              return 0;
+          }
+          // Increment each index by the right amount.
+          ia += aCodePoint <= 0xFFFF ? 1 : 2;
+          ib += bCodePoint <= 0xFFFF ? 1 : 2;
+      }
+  }
+
   // Type constants used to define functions.
   var TYPE_NUMBER = 0;
   var TYPE_ANY = 1;
@@ -1334,12 +1354,7 @@
     _functionReverse: function(resolvedArgs) {
         var typeName = this._getTypeName(resolvedArgs[0]);
         if (typeName === TYPE_STRING) {
-          var originalStr = resolvedArgs[0];
-          var reversedStr = "";
-          for (var i = originalStr.length - 1; i >= 0; i--) {
-              reversedStr += originalStr[i];
-          }
-          return reversedStr;
+          return Array.from(resolvedArgs[0]).reverse().join("");
         } else {
           var reversedArray = resolvedArgs[0].slice(0);
           reversedArray.reverse();
@@ -1374,7 +1389,7 @@
 
     _functionLength: function(resolvedArgs) {
        if (!isObject(resolvedArgs[0])) {
-         return resolvedArgs[0].length;
+         return Array.from(resolvedArgs[0]).length;
        } else {
          // As far as I can tell, there's no way to get the length
          // of an object without O(n) iteration through the object.
@@ -1533,7 +1548,14 @@
 
     _functionSort: function(resolvedArgs) {
         var sortedArray = resolvedArgs[0].slice(0);
-        sortedArray.sort();
+        if (sortedArray.length === 0) {
+            return sortedArray;
+        }
+        if (this._getTypeName(sortedArray[0]) === TYPE_STRING) {
+            sortedArray.sort(compareStringsByCodePoints);
+        } else {
+            sortedArray.sort();
+        }
         return sortedArray;
     },
 
@@ -1573,7 +1595,9 @@
                   "TypeError: expected " + requiredType + ", received " +
                   that._getTypeName(exprB));
           }
-          if (exprA > exprB) {
+          if (requiredType === TYPE_STRING) {
+            return compareStringsByCodePoints(exprA, exprB) || a[0] - b[0];
+          } else if (exprA > exprB) {
             return 1;
           } else if (exprA < exprB) {
             return -1;
