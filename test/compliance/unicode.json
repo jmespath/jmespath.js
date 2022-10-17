@@ -34,5 +34,55 @@
                 "result": true
             }
         ]
+    },
+    {
+        "given": {},
+        "cases": [
+            {
+                "expression": "length('𝌆')",
+                "result": 1
+            }
+        ]
+    },
+    {
+        "given": {},
+        "cases": [
+            {
+                "expression": "reverse('a𝌆b')",
+                "result": "b𝌆a"
+            }
+        ]
+    },
+    {
+        "given": {
+            "strings": ["𝌆", "ﬆ", "ﬆyle", "ﬃ"]
+        },
+        "cases": [
+            {
+                "expression": "sort(strings)",
+                "result": ["ﬃ", "ﬆ", "ﬆyle", "𝌆"]
+            }
+        ]
+    },
+    {
+        "given": {
+            "characters": [
+                {"character": "𝌆", "codePoint": 119558, "name": "TETRAGRAM FOR CENTRE"},
+                {"character": "ﬆ", "codePoint": 64262, "name": "LATIN SMALL LIGATURE ST"},
+                {"character": "ﬀ", "codePoint": 64256, "name": "LATIN SMALL LIGATURE FF"},
+                {"character": "ﬃ", "codePoint": 64259, "name": "LATIN SMALL LIGATURE FFI"}
+            ]
+        },
+        "cases": [
+            {
+                "expression": "sort_by(characters, &character)",
+                "result": [
+                    {"character": "ﬀ", "codePoint": 64256, "name": "LATIN SMALL LIGATURE FF"},
+                    {"character": "ﬃ", "codePoint": 64259, "name": "LATIN SMALL LIGATURE FFI"},
+                    {"character": "ﬆ", "codePoint": 64262, "name": "LATIN SMALL LIGATURE ST"},
+                    {"character": "𝌆", "codePoint": 119558, "name": "TETRAGRAM FOR CENTRE"}
+                ]
+            }
+        ]
     }
 ]
