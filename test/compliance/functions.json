@@ -432,6 +432,10 @@
       "result": false
     },
     {
+      "expression": "starts_with('StringString', 'S')",
+      "result": true
+    },
+    {
       "expression": "starts_with(str, `0`)",
       "error": "invalid-type"
     },
