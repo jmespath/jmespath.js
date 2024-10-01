@@ -1,0 +1,20 @@
+{
+  "name": "@halvardm/jmespath",
+  "version": "0.17.0",
+  "exports": {
+    ".": "./mod.ts",
+    "./bin": "./bin.ts"
+  },
+  "tasks": {
+    "test": "deno test --allow-read",
+    "test:inspect": "deno task test --inspect-wait"
+  },
+  "license": "Apache-2.0",
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1",
+    "@std/path": "jsr:@std/path@^1"
+  },
+  "fmt": {
+    "exclude": ["test/compliance"]
+  }
+}

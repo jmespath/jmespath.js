@@ -1,16 +1,16 @@
 [
   {
-    "given": {"foo": [{"name": "a"}, {"name": "b"}]},
+    "given": { "foo": [{ "name": "a" }, { "name": "b" }] },
     "cases": [
       {
         "comment": "Matching a literal",
         "expression": "foo[?name == 'a']",
-        "result": [{"name": "a"}]
+        "result": [{ "name": "a" }]
       }
     ]
   },
   {
-    "given": {"foo": [0, 1], "bar": [2, 3]},
+    "given": { "foo": [0, 1], "bar": [2, 3] },
     "cases": [
       {
         "comment": "Matching a literal",
@@ -20,14 +20,18 @@
     ]
   },
   {
-    "given": {"foo": [{"first": "foo", "last": "bar"},
-      {"first": "foo", "last": "foo"},
-      {"first": "foo", "last": "baz"}]},
+    "given": {
+      "foo": [
+        { "first": "foo", "last": "bar" },
+        { "first": "foo", "last": "foo" },
+        { "first": "foo", "last": "baz" }
+      ]
+    },
     "cases": [
       {
         "comment": "Matching an expression",
         "expression": "foo[?first == last]",
-        "result": [{"first": "foo", "last": "foo"}]
+        "result": [{ "first": "foo", "last": "foo" }]
       },
       {
         "comment": "Verify projection created from filter",
@@ -37,18 +41,16 @@
     ]
   },
   {
-    "given": {"foo": [{"age": 20},
-      {"age": 25},
-      {"age": 30}]},
+    "given": { "foo": [{ "age": 20 }, { "age": 25 }, { "age": 30 }] },
     "cases": [
       {
         "comment": "Greater than with a number",
         "expression": "foo[?age > `25`]",
-        "result": [{"age": 30}]
+        "result": [{ "age": 30 }]
       },
       {
         "expression": "foo[?age >= `25`]",
-        "result": [{"age": 25}, {"age": 30}]
+        "result": [{ "age": 25 }, { "age": 30 }]
       },
       {
         "comment": "Greater than with a number",
@@ -58,12 +60,12 @@
       {
         "comment": "Greater than with a number",
         "expression": "foo[?age < `25`]",
-        "result": [{"age": 20}]
+        "result": [{ "age": 20 }]
       },
       {
         "comment": "Greater than with a number",
         "expression": "foo[?age <= `25`]",
-        "result": [{"age": 20}, {"age": 25}]
+        "result": [{ "age": 20 }, { "age": 25 }]
       },
       {
         "comment": "Greater than with a number",
@@ -72,216 +74,343 @@
       },
       {
         "expression": "foo[?age == `20`]",
-        "result": [{"age": 20}]
+        "result": [{ "age": 20 }]
       },
       {
         "expression": "foo[?age != `20`]",
-        "result": [{"age": 25}, {"age": 30}]
+        "result": [{ "age": 25 }, { "age": 30 }]
       }
     ]
   },
   {
-    "given": {"foo": [{"top": {"name": "a"}},
-      {"top": {"name": "b"}}]},
+    "given": {
+      "foo": [{ "top": { "name": "a" } }, { "top": { "name": "b" } }]
+    },
     "cases": [
       {
         "comment": "Filter with subexpression",
         "expression": "foo[?top.name == 'a']",
-        "result": [{"top": {"name": "a"}}]
+        "result": [{ "top": { "name": "a" } }]
       }
     ]
   },
   {
-    "given": {"foo": [{"top": {"first": "foo", "last": "bar"}},
-      {"top": {"first": "foo", "last": "foo"}},
-      {"top": {"first": "foo", "last": "baz"}}]},
+    "given": {
+      "foo": [
+        { "top": { "first": "foo", "last": "bar" } },
+        { "top": { "first": "foo", "last": "foo" } },
+        { "top": { "first": "foo", "last": "baz" } }
+      ]
+    },
     "cases": [
       {
         "comment": "Matching an expression",
         "expression": "foo[?top.first == top.last]",
-        "result": [{"top": {"first": "foo", "last": "foo"}}]
+        "result": [{ "top": { "first": "foo", "last": "foo" } }]
       },
       {
         "comment": "Matching a JSON array",
         "expression": "foo[?top == `{\"first\": \"foo\", \"last\": \"bar\"}`]",
-        "result": [{"top": {"first": "foo", "last": "bar"}}]
+        "result": [{ "top": { "first": "foo", "last": "bar" } }]
       }
     ]
   },
   {
-    "given": {"foo": [
-      {"key": true},
-      {"key": false},
-      {"key": 0},
-      {"key": 1},
-      {"key": [0]},
-      {"key": {"bar": [0]}},
-      {"key": null},
-      {"key": [1]},
-      {"key": {"a":2}}
-    ]},
+    "given": {
+      "foo": [
+        { "key": true },
+        { "key": false },
+        { "key": 0 },
+        { "key": 1 },
+        { "key": [0] },
+        { "key": { "bar": [0] } },
+        { "key": null },
+        { "key": [1] },
+        { "key": { "a": 2 } }
+      ]
+    },
     "cases": [
       {
         "expression": "foo[?key == `true`]",
-        "result": [{"key": true}]
+        "result": [{ "key": true }]
       },
       {
         "expression": "foo[?key == `false`]",
-        "result": [{"key": false}]
+        "result": [{ "key": false }]
       },
       {
         "expression": "foo[?key == `0`]",
-        "result": [{"key": 0}]
+        "result": [{ "key": 0 }]
       },
       {
         "expression": "foo[?key == `1`]",
-        "result": [{"key": 1}]
+        "result": [{ "key": 1 }]
       },
       {
         "expression": "foo[?key == `[0]`]",
-        "result": [{"key": [0]}]
+        "result": [{ "key": [0] }]
       },
       {
         "expression": "foo[?key == `{\"bar\": [0]}`]",
-        "result": [{"key": {"bar": [0]}}]
+        "result": [{ "key": { "bar": [0] } }]
       },
       {
         "expression": "foo[?key == `null`]",
-        "result": [{"key": null}]
+        "result": [{ "key": null }]
       },
       {
         "expression": "foo[?key == `[1]`]",
-        "result": [{"key": [1]}]
+        "result": [{ "key": [1] }]
       },
       {
         "expression": "foo[?key == `{\"a\":2}`]",
-        "result": [{"key": {"a":2}}]
+        "result": [{ "key": { "a": 2 } }]
       },
       {
         "expression": "foo[?`true` == key]",
-        "result": [{"key": true}]
+        "result": [{ "key": true }]
       },
       {
         "expression": "foo[?`false` == key]",
-        "result": [{"key": false}]
+        "result": [{ "key": false }]
       },
       {
         "expression": "foo[?`0` == key]",
-        "result": [{"key": 0}]
+        "result": [{ "key": 0 }]
       },
       {
         "expression": "foo[?`1` == key]",
-        "result": [{"key": 1}]
+        "result": [{ "key": 1 }]
       },
       {
         "expression": "foo[?`[0]` == key]",
-        "result": [{"key": [0]}]
+        "result": [{ "key": [0] }]
       },
       {
         "expression": "foo[?`{\"bar\": [0]}` == key]",
-        "result": [{"key": {"bar": [0]}}]
+        "result": [{ "key": { "bar": [0] } }]
       },
       {
         "expression": "foo[?`null` == key]",
-        "result": [{"key": null}]
+        "result": [{ "key": null }]
       },
       {
         "expression": "foo[?`[1]` == key]",
-        "result": [{"key": [1]}]
+        "result": [{ "key": [1] }]
       },
       {
         "expression": "foo[?`{\"a\":2}` == key]",
-        "result": [{"key": {"a":2}}]
+        "result": [{ "key": { "a": 2 } }]
       },
       {
         "expression": "foo[?key != `true`]",
-        "result": [{"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?key != `false`]",
-        "result": [{"key": true}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?key != `0`]",
-        "result": [{"key": true}, {"key": false}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?key != `1`]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?key != `null`]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?key != `[1]`]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?key != `{\"a\":2}`]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] }
+        ]
       },
       {
         "expression": "foo[?`true` != key]",
-        "result": [{"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?`false` != key]",
-        "result": [{"key": true}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?`0` != key]",
-        "result": [{"key": true}, {"key": false}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?`1` != key]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?`null` != key]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": [1]}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": [1] },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?`[1]` != key]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": {"a":2}}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": { "a": 2 } }
+        ]
       },
       {
         "expression": "foo[?`{\"a\":2}` != key]",
-        "result": [{"key": true}, {"key": false}, {"key": 0}, {"key": 1}, {"key": [0]},
-          {"key": {"bar": [0]}}, {"key": null}, {"key": [1]}]
+        "result": [
+          { "key": true },
+          { "key": false },
+          { "key": 0 },
+          { "key": 1 },
+          { "key": [0] },
+          { "key": { "bar": [0] } },
+          { "key": null },
+          { "key": [1] }
+        ]
       }
     ]
   },
   {
-    "given": {"reservations": [
-      {"instances": [
-        {"foo": 1, "bar": 2}, {"foo": 1, "bar": 3},
-        {"foo": 1, "bar": 2}, {"foo": 2, "bar": 1}]}]},
+    "given": {
+      "reservations": [
+        {
+          "instances": [
+            { "foo": 1, "bar": 2 },
+            { "foo": 1, "bar": 3 },
+            { "foo": 1, "bar": 2 },
+            { "foo": 2, "bar": 1 }
+          ]
+        }
+      ]
+    },
     "cases": [
       {
         "expression": "reservations[].instances[?bar==`1`]",
-        "result": [[{"foo": 2, "bar": 1}]]
+        "result": [[{ "foo": 2, "bar": 1 }]]
       },
       {
         "expression": "reservations[*].instances[?bar==`1`]",
-        "result": [[{"foo": 2, "bar": 1}]]
+        "result": [[{ "foo": 2, "bar": 1 }]]
       },
       {
         "expression": "reservations[].instances[?bar==`1`][]",
-        "result": [{"foo": 2, "bar": 1}]
+        "result": [{ "foo": 2, "bar": 1 }]
       }
     ]
   },
@@ -289,7 +418,11 @@
     "given": {
       "baz": "other",
       "foo": [
-        {"bar": 1}, {"bar": 2}, {"bar": 3}, {"bar": 4}, {"bar": 1, "baz": 2}
+        { "bar": 1 },
+        { "bar": 2 },
+        { "bar": 3 },
+        { "bar": 4 },
+        { "bar": 1, "baz": 2 }
       ]
     },
     "cases": [
@@ -302,11 +435,11 @@
   {
     "given": {
       "foo": [
-        {"a": 1, "b": {"c": "x"}},
-	{"a": 1, "b": {"c": "y"}},
-	{"a": 1, "b": {"c": "z"}},
-	{"a": 2, "b": {"c": "z"}},
-	{"a": 1, "baz": 2}
+        { "a": 1, "b": { "c": "x" } },
+        { "a": 1, "b": { "c": "y" } },
+        { "a": 1, "b": { "c": "z" } },
+        { "a": 2, "b": { "c": "z" } },
+        { "a": 1, "baz": 2 }
       ]
     },
     "cases": [
@@ -317,30 +450,30 @@
     ]
   },
   {
-    "given": {"foo": [{"name": "a"}, {"name": "b"}, {"name": "c"}]},
+    "given": { "foo": [{ "name": "a" }, { "name": "b" }, { "name": "c" }] },
     "cases": [
       {
         "comment": "Filter with or expression",
         "expression": "foo[?name == 'a' || name == 'b']",
-        "result": [{"name": "a"}, {"name": "b"}]
+        "result": [{ "name": "a" }, { "name": "b" }]
       },
       {
         "expression": "foo[?name == 'a' || name == 'e']",
-        "result": [{"name": "a"}]
+        "result": [{ "name": "a" }]
       },
       {
         "expression": "foo[?name == 'a' || name == 'b' || name == 'c']",
-        "result": [{"name": "a"}, {"name": "b"}, {"name": "c"}]
+        "result": [{ "name": "a" }, { "name": "b" }, { "name": "c" }]
       }
     ]
   },
   {
-    "given": {"foo": [{"a": 1, "b": 2}, {"a": 1, "b": 3}]},
+    "given": { "foo": [{ "a": 1, "b": 2 }, { "a": 1, "b": 3 }] },
     "cases": [
       {
         "comment": "Filter with and expression",
         "expression": "foo[?a == `1` && b == `2`]",
-        "result": [{"a": 1, "b": 2}]
+        "result": [{ "a": 1, "b": 2 }]
       },
       {
         "expression": "foo[?a == `1` && b == `4`]",
@@ -349,46 +482,46 @@
     ]
   },
   {
-    "given": {"foo": [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4}]},
+    "given": { "foo": [{ "a": 1, "b": 2, "c": 3 }, { "a": 3, "b": 4 }] },
     "cases": [
       {
         "comment": "Filter with Or and And expressions",
         "expression": "foo[?c == `3` || a == `1` && b == `4`]",
-        "result": [{"a": 1, "b": 2, "c": 3}]
+        "result": [{ "a": 1, "b": 2, "c": 3 }]
       },
       {
         "expression": "foo[?b == `2` || a == `3` && b == `4`]",
-        "result": [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4}]
+        "result": [{ "a": 1, "b": 2, "c": 3 }, { "a": 3, "b": 4 }]
       },
       {
         "expression": "foo[?a == `3` && b == `4` || b == `2`]",
-        "result": [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4}]
+        "result": [{ "a": 1, "b": 2, "c": 3 }, { "a": 3, "b": 4 }]
       },
       {
         "expression": "foo[?(a == `3` && b == `4`) || b == `2`]",
-        "result": [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4}]
+        "result": [{ "a": 1, "b": 2, "c": 3 }, { "a": 3, "b": 4 }]
       },
       {
         "expression": "foo[?((a == `3` && b == `4`)) || b == `2`]",
-        "result": [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4}]
+        "result": [{ "a": 1, "b": 2, "c": 3 }, { "a": 3, "b": 4 }]
       },
       {
         "expression": "foo[?a == `3` && (b == `4` || b == `2`)]",
-        "result": [{"a": 3, "b": 4}]
+        "result": [{ "a": 3, "b": 4 }]
       },
       {
         "expression": "foo[?a == `3` && ((b == `4` || b == `2`))]",
-        "result": [{"a": 3, "b": 4}]
+        "result": [{ "a": 3, "b": 4 }]
       }
     ]
   },
   {
-    "given": {"foo": [{"a": 1, "b": 2, "c": 3}, {"a": 3, "b": 4}]},
+    "given": { "foo": [{ "a": 1, "b": 2, "c": 3 }, { "a": 3, "b": 4 }] },
     "cases": [
       {
         "comment": "Verify precedence of or/and expressions",
         "expression": "foo[?a == `1` || b ==`2` && c == `5`]",
-        "result": [{"a": 1, "b": 2, "c": 3}]
+        "result": [{ "a": 1, "b": 2, "c": 3 }]
       },
       {
         "comment": "Parentheses can alter precedence",
@@ -398,23 +531,23 @@
       {
         "comment": "Not expressions combined with and/or",
         "expression": "foo[?!(a == `1` || b ==`2`)]",
-        "result": [{"a": 3, "b": 4}]
+        "result": [{ "a": 3, "b": 4 }]
       }
     ]
   },
   {
     "given": {
       "foo": [
-        {"key": true},
-        {"key": false},
-        {"key": []},
-        {"key": {}},
-        {"key": [0]},
-        {"key": {"a": "b"}},
-        {"key": 0},
-        {"key": 1},
-        {"key": null},
-        {"notkey": true}
+        { "key": true },
+        { "key": false },
+        { "key": [] },
+        { "key": {} },
+        { "key": [0] },
+        { "key": { "a": "b" } },
+        { "key": 0 },
+        { "key": 1 },
+        { "key": null },
+        { "notkey": true }
       ]
     },
     "cases": [
@@ -422,23 +555,30 @@
         "comment": "Unary filter expression",
         "expression": "foo[?key]",
         "result": [
-          {"key": true}, {"key": [0]}, {"key": {"a": "b"}},
-          {"key": 0}, {"key": 1}
+          { "key": true },
+          { "key": [0] },
+          { "key": { "a": "b" } },
+          { "key": 0 },
+          { "key": 1 }
         ]
       },
       {
         "comment": "Unary not filter expression",
         "expression": "foo[?!key]",
         "result": [
-          {"key": false}, {"key": []}, {"key": {}},
-          {"key": null}, {"notkey": true}
+          { "key": false },
+          { "key": [] },
+          { "key": {} },
+          { "key": null },
+          { "notkey": true }
         ]
       },
       {
         "comment": "Equality with null RHS",
         "expression": "foo[?key == `null`]",
         "result": [
-          {"key": null}, {"notkey": true}
+          { "key": null },
+          { "notkey": true }
         ]
       }
     ]

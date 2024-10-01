@@ -1,6 +1,5 @@
 [{
-  "given":
-  {
+  "given": {
     "foo": -1,
     "zero": 0,
     "numbers": [-1, 3, 4, 5],
@@ -11,7 +10,7 @@
     "false": false,
     "empty_list": [],
     "empty_hash": {},
-    "objects": {"foo": "bar", "bar": "baz"},
+    "objects": { "foo": "bar", "bar": "baz" },
     "null_key": null
   },
   "cases": [
@@ -253,15 +252,15 @@
     },
     {
       "expression": "merge(`{\"a\": 1}`, `{\"b\": 2}`)",
-      "result": {"a": 1, "b": 2}
+      "result": { "a": 1, "b": 2 }
     },
     {
       "expression": "merge(`{\"a\": 1}`, `{\"a\": 2}`)",
-      "result": {"a": 2}
+      "result": { "a": 2 }
     },
     {
       "expression": "merge(`{\"a\": 1, \"b\": 2}`, `{\"a\": 2, \"c\": 3}`, `{\"d\": 4}`)",
-      "result": {"a": 2, "b": 2, "c": 3, "d": 4}
+      "result": { "a": 2, "b": 2, "c": 3, "d": 4 }
     },
     {
       "expression": "min(numbers)",
@@ -465,7 +464,7 @@
     },
     {
       "expression": "to_array(objects)",
-      "result": [{"foo": "bar", "bar": "baz"}]
+      "result": [{ "foo": "bar", "bar": "baz" }]
     },
     {
       "expression": "to_array(`[1, 2, 3]`)",
@@ -583,14 +582,13 @@
     }
   ]
 }, {
-  "given":
-  {
+  "given": {
     "foo": [
-         {"b": "b", "a": "a"},
-         {"c": "c", "b": "b"},
-         {"d": "d", "c": "c"},
-         {"e": "e", "d": "d"},
-         {"f": "f", "e": "e"}
+      { "b": "b", "a": "a" },
+      { "c": "c", "b": "b" },
+      { "d": "d", "c": "c" },
+      { "e": "e", "d": "d" },
+      { "f": "f", "e": "e" }
     ]
   },
   "cases": [
@@ -601,14 +599,19 @@
     }
   ]
 }, {
-  "given":
-  {
+  "given": {
     "people": [
-         {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
-         {"age": 40, "age_str": "40", "bool": false, "name": "b", "extra": "bar"},
-         {"age": 30, "age_str": "30", "bool": true, "name": "c"},
-         {"age": 50, "age_str": "50", "bool": false, "name": "d"},
-         {"age": 10, "age_str": "10", "bool": true, "name": 3}
+      { "age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo" },
+      {
+        "age": 40,
+        "age_str": "40",
+        "bool": false,
+        "name": "b",
+        "extra": "bar"
+      },
+      { "age": 30, "age_str": "30", "bool": true, "name": "c" },
+      { "age": 50, "age_str": "50", "bool": false, "name": "d" },
+      { "age": 10, "age_str": "10", "bool": true, "name": 3 }
     ]
   },
   "cases": [
@@ -616,32 +619,68 @@
       "description": "sort by field expression",
       "expression": "sort_by(people, &age)",
       "result": [
-         {"age": 10, "age_str": "10", "bool": true, "name": 3},
-         {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
-         {"age": 30, "age_str": "30", "bool": true, "name": "c"},
-         {"age": 40, "age_str": "40", "bool": false, "name": "b", "extra": "bar"},
-         {"age": 50, "age_str": "50", "bool": false, "name": "d"}
+        { "age": 10, "age_str": "10", "bool": true, "name": 3 },
+        {
+          "age": 20,
+          "age_str": "20",
+          "bool": true,
+          "name": "a",
+          "extra": "foo"
+        },
+        { "age": 30, "age_str": "30", "bool": true, "name": "c" },
+        {
+          "age": 40,
+          "age_str": "40",
+          "bool": false,
+          "name": "b",
+          "extra": "bar"
+        },
+        { "age": 50, "age_str": "50", "bool": false, "name": "d" }
       ]
     },
     {
       "expression": "sort_by(people, &age_str)",
       "result": [
-         {"age": 10, "age_str": "10", "bool": true, "name": 3},
-         {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
-         {"age": 30, "age_str": "30", "bool": true, "name": "c"},
-         {"age": 40, "age_str": "40", "bool": false, "name": "b", "extra": "bar"},
-         {"age": 50, "age_str": "50", "bool": false, "name": "d"}
+        { "age": 10, "age_str": "10", "bool": true, "name": 3 },
+        {
+          "age": 20,
+          "age_str": "20",
+          "bool": true,
+          "name": "a",
+          "extra": "foo"
+        },
+        { "age": 30, "age_str": "30", "bool": true, "name": "c" },
+        {
+          "age": 40,
+          "age_str": "40",
+          "bool": false,
+          "name": "b",
+          "extra": "bar"
+        },
+        { "age": 50, "age_str": "50", "bool": false, "name": "d" }
       ]
     },
     {
       "description": "sort by function expression",
       "expression": "sort_by(people, &to_number(age_str))",
       "result": [
-         {"age": 10, "age_str": "10", "bool": true, "name": 3},
-         {"age": 20, "age_str": "20", "bool": true, "name": "a", "extra": "foo"},
-         {"age": 30, "age_str": "30", "bool": true, "name": "c"},
-         {"age": 40, "age_str": "40", "bool": false, "name": "b", "extra": "bar"},
-         {"age": 50, "age_str": "50", "bool": false, "name": "d"}
+        { "age": 10, "age_str": "10", "bool": true, "name": 3 },
+        {
+          "age": 20,
+          "age_str": "20",
+          "bool": true,
+          "name": "a",
+          "extra": "foo"
+        },
+        { "age": 30, "age_str": "30", "bool": true, "name": "c" },
+        {
+          "age": 40,
+          "age_str": "40",
+          "bool": false,
+          "name": "b",
+          "extra": "bar"
+        },
+        { "age": 50, "age_str": "50", "bool": false, "name": "d" }
       ]
     },
     {
@@ -675,11 +714,11 @@
     },
     {
       "expression": "max_by(people, &age)",
-      "result": {"age": 50, "age_str": "50", "bool": false, "name": "d"}
+      "result": { "age": 50, "age_str": "50", "bool": false, "name": "d" }
     },
     {
       "expression": "max_by(people, &age_str)",
-      "result": {"age": 50, "age_str": "50", "bool": false, "name": "d"}
+      "result": { "age": 50, "age_str": "50", "bool": false, "name": "d" }
     },
     {
       "expression": "max_by(people, &bool)",
@@ -691,15 +730,15 @@
     },
     {
       "expression": "max_by(people, &to_number(age_str))",
-      "result": {"age": 50, "age_str": "50", "bool": false, "name": "d"}
+      "result": { "age": 50, "age_str": "50", "bool": false, "name": "d" }
     },
     {
       "expression": "min_by(people, &age)",
-      "result": {"age": 10, "age_str": "10", "bool": true, "name": 3}
+      "result": { "age": 10, "age_str": "10", "bool": true, "name": 3 }
     },
     {
       "expression": "min_by(people, &age_str)",
-      "result": {"age": 10, "age_str": "10", "bool": true, "name": 3}
+      "result": { "age": 10, "age_str": "10", "bool": true, "name": 3 }
     },
     {
       "expression": "min_by(people, &bool)",
@@ -711,24 +750,23 @@
     },
     {
       "expression": "min_by(people, &to_number(age_str))",
-      "result": {"age": 10, "age_str": "10", "bool": true, "name": 3}
+      "result": { "age": 10, "age_str": "10", "bool": true, "name": 3 }
     }
   ]
 }, {
-  "given":
-  {
+  "given": {
     "people": [
-         {"age": 10, "order": "1"},
-         {"age": 10, "order": "2"},
-         {"age": 10, "order": "3"},
-         {"age": 10, "order": "4"},
-         {"age": 10, "order": "5"},
-         {"age": 10, "order": "6"},
-         {"age": 10, "order": "7"},
-         {"age": 10, "order": "8"},
-         {"age": 10, "order": "9"},
-         {"age": 10, "order": "10"},
-         {"age": 10, "order": "11"}
+      { "age": 10, "order": "1" },
+      { "age": 10, "order": "2" },
+      { "age": 10, "order": "3" },
+      { "age": 10, "order": "4" },
+      { "age": 10, "order": "5" },
+      { "age": 10, "order": "6" },
+      { "age": 10, "order": "7" },
+      { "age": 10, "order": "8" },
+      { "age": 10, "order": "9" },
+      { "age": 10, "order": "10" },
+      { "age": 10, "order": "11" }
     ]
   },
   "cases": [
@@ -736,33 +774,32 @@
       "description": "stable sort order",
       "expression": "sort_by(people, &age)",
       "result": [
-         {"age": 10, "order": "1"},
-         {"age": 10, "order": "2"},
-         {"age": 10, "order": "3"},
-         {"age": 10, "order": "4"},
-         {"age": 10, "order": "5"},
-         {"age": 10, "order": "6"},
-         {"age": 10, "order": "7"},
-         {"age": 10, "order": "8"},
-         {"age": 10, "order": "9"},
-         {"age": 10, "order": "10"},
-         {"age": 10, "order": "11"}
+        { "age": 10, "order": "1" },
+        { "age": 10, "order": "2" },
+        { "age": 10, "order": "3" },
+        { "age": 10, "order": "4" },
+        { "age": 10, "order": "5" },
+        { "age": 10, "order": "6" },
+        { "age": 10, "order": "7" },
+        { "age": 10, "order": "8" },
+        { "age": 10, "order": "9" },
+        { "age": 10, "order": "10" },
+        { "age": 10, "order": "11" }
       ]
     }
   ]
 }, {
-  "given":
-  {
+  "given": {
     "people": [
-         {"a": 10, "b": 1, "c": "z"},
-         {"a": 10, "b": 2, "c": null},
-         {"a": 10, "b": 3},
-         {"a": 10, "b": 4, "c": "z"},
-         {"a": 10, "b": 5, "c": null},
-         {"a": 10, "b": 6},
-         {"a": 10, "b": 7, "c": "z"},
-         {"a": 10, "b": 8, "c": null},
-         {"a": 10, "b": 9}
+      { "a": 10, "b": 1, "c": "z" },
+      { "a": 10, "b": 2, "c": null },
+      { "a": 10, "b": 3 },
+      { "a": 10, "b": 4, "c": "z" },
+      { "a": 10, "b": 5, "c": null },
+      { "a": 10, "b": 6 },
+      { "a": 10, "b": 7, "c": "z" },
+      { "a": 10, "b": 8, "c": null },
+      { "a": 10, "b": 9 }
     ],
     "empty": []
   },
@@ -788,15 +825,16 @@
   "given": {
     "array": [
       {
-          "foo": {"bar": "yes1"}
+        "foo": { "bar": "yes1" }
       },
       {
-          "foo": {"bar": "yes2"}
+        "foo": { "bar": "yes2" }
       },
       {
-          "foo1": {"bar": "no"}
+        "foo1": { "bar": "no" }
       }
-  ]},
+    ]
+  },
   "cases": [
     {
       "expression": "map(&foo.bar, array)",
@@ -821,5 +859,4 @@
       "result": [[1, 2, 3, 4], [5, 6, 7, 8, 9]]
     }
   ]
-}
-]
+}]
