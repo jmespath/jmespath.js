@@ -1122,9 +1122,11 @@
 
   };
 
+  var customFunctionTable = {};
+
   function Runtime(interpreter) {
     this._interpreter = interpreter;
-    this.functionTable = {
+    var builtinFunctionTable = {
         // name: [function, <signature>]
         // The <signature> can be:
         //
@@ -1203,6 +1205,7 @@
             _signature: [{types: [TYPE_ANY], variadic: true}]
         }
     };
+    this.functionTable = Object.assign(builtinFunctionTable, customFunctionTable);
   }
 
   Runtime.prototype = {
@@ -1665,8 +1668,27 @@
       return interpreter.search(node, data);
   }
 
+  function extendsFunction(name, factory) {
+    var customFunction = factory({
+      TYPE_NUMBER: TYPE_NUMBER,
+      TYPE_STRING: TYPE_STRING,
+      TYPE_ARRAY: TYPE_ARRAY,
+      TYPE_OBJECT: TYPE_OBJECT,
+      TYPE_BOOLEAN: TYPE_BOOLEAN,
+      TYPE_EXPREF: TYPE_EXPREF,
+      TYPE_NULL: TYPE_NULL,
+      TYPE_ARRAY_NUMBER: TYPE_ARRAY_NUMBER,
+      TYPE_ARRAY_STRING: TYPE_ARRAY_STRING
+    });
+    customFunctionTable[name] = {
+      _func: customFunction.processor,
+      _signature: customFunction.signature
+    };
+  }
+
   exports.tokenize = tokenize;
   exports.compile = compile;
   exports.search = search;
   exports.strictDeepEqual = strictDeepEqual;
+  exports.extendsFunction = extendsFunction;
 })(typeof exports === "undefined" ? this.jmespath = {} : exports);

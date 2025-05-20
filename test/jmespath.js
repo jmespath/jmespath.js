@@ -232,3 +232,25 @@ describe('search', function() {
         }
     );
 });
+
+describe('custom-functions', function() {
+    it(
+        'should return custom function result',
+        function () {
+            jmespath.extendsFunction('foo', function (supportedTypes) {
+                return {
+                    processor: function (resolvedArgs) {
+                        return 99 + resolvedArgs[0];
+                    },
+                    signature: [
+                        { types: [supportedTypes.TYPE_NUMBER] }
+                    ]
+                };
+            });
+            assert.strictEqual(
+                jmespath.search({ bar: 1 }, 'foo(bar)'),
+                100
+            );
+        }
+    );
+});
