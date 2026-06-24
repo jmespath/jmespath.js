@@ -1358,6 +1358,9 @@
     _functionAvg: function(resolvedArgs) {
         var sum = 0;
         var inputArray = resolvedArgs[0];
+        if (inputArray.length === 0) {
+            return null;
+        }
         for (var i = 0; i < inputArray.length; i++) {
             sum += inputArray[i];
         }
