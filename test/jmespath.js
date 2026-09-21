@@ -165,6 +165,22 @@ describe('tokenize', function() {
 
 
 describe('parsing', function() {
+    [
+        ['foo[:bar]', 'bar(UnquotedIdentifier)'],
+        ['foo[1:2:bar]', 'bar(UnquotedIdentifier)'],
+        ['foo[1:,]', ',(Comma)'],
+        ['foo[1:', '(EOF)']
+    ].forEach(function(testCase) {
+        it('reports the unexpected slice token in ' + testCase[0], function() {
+            assert.throws(function() {
+                compile(testCase[0]);
+            }, function(error) {
+                return error.message ===
+                    'Syntax error, unexpected token: ' + testCase[1];
+            });
+        });
+    });
+
     it('should parse field node', function() {
         assert.deepEqual(compile('foo'),
                           {type: 'Field', name: 'foo'});

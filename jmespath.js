@@ -758,7 +758,7 @@
                   parts[index] = this._lookaheadToken(0).value;
                   this._advance();
               } else {
-                  var t = this._lookahead(0);
+                  var t = this._lookaheadToken(0);
                   var error = new Error("Syntax error, unexpected token: " +
                                         t.value + "(" + t.type + ")");
                   error.name = "Parsererror";
