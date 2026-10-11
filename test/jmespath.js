@@ -4,6 +4,32 @@ var tokenize = jmespath.tokenize;
 var compile = jmespath.compile;
 var strictDeepEqual = jmespath.strictDeepEqual;
 
+describe('JSON field lookup', function() {
+    ['constructor', 'toString', 'hasOwnProperty', '__proto__'].forEach(function(name) {
+        it('does not return inherited ' + name + ' for a missing field', function() {
+            assert.strictEqual(jmespath.search({}, name), null);
+        });
+    });
+
+    it('treats a missing nested field as null', function() {
+        assert.strictEqual(jmespath.search({child: {}}, 'child.constructor'), null);
+    });
+
+    it('omits missing fields from projections', function() {
+        assert.deepEqual(
+            jmespath.search([{}, {constructor: 'stored'}, {}], '[].constructor'),
+            ['stored']);
+    });
+
+    it('preserves own fields with prototype names', function() {
+        var data = JSON.parse('{"constructor":"stored","__proto__":{"value":1},"toString":"text","hasOwnProperty":false}');
+        assert.strictEqual(jmespath.search(data, 'constructor'), 'stored');
+        assert.strictEqual(jmespath.search(data, '__proto__.value'), 1);
+        assert.strictEqual(jmespath.search(data, 'toString'), 'text');
+        assert.strictEqual(jmespath.search(data, 'hasOwnProperty'), false);
+    });
+});
+
 
 describe('tokenize', function() {
     it('should tokenize unquoted identifier', function() {

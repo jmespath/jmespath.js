@@ -870,7 +870,8 @@
           var matched, current, result, first, second, field, left, right, collected, i;
           switch (node.type) {
             case "Field":
-              if (value !== null && isObject(value)) {
+              if (value !== null && isObject(value) &&
+                  Object.prototype.hasOwnProperty.call(value, node.name)) {
                   field = value[node.name];
                   if (field === undefined) {
                       return null;
