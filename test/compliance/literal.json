@@ -184,6 +184,54 @@
           "comment": "Can escape the single quote",
           "expression": "'foo\\'bar'",
           "result": "foo'bar"
+        },
+        {
+          "comment": "Unescape every single quote in a raw string",
+          "expression": "'foo\\'bar\\'baz'",
+          "result": "foo'bar'baz"
+        },
+        {
+          "comment": "Unescape consecutive single quotes",
+          "expression": "'\\'\\''",
+          "result": "''"
+        },
+        {
+          "comment": "Unescape quotes at both ends of the raw string",
+          "expression": "'\\'foo\\''",
+          "result": "'foo'"
+        },
+        {
+          "comment": "Preserve other raw escapes while unescaping all quotes",
+          "expression": "'\\nfoo\\'bar\\'\\u03a6'",
+          "result": "\\nfoo'bar'\\u03a6"
+        },
+        {
+          "comment": "Unescape all quotes in each raw string",
+          "expression": "['a\\'b\\'c', 'd\\'e\\'f']",
+          "result": [
+            "a'b'c",
+            "d'e'f"
+          ]
+        }
+      ]
+    },
+    {
+      "comment": "Filter with repeated escaped single quotes",
+      "given": [
+        {
+          "title": "O'Reilly's book"
+        },
+        {
+          "title": "Another book"
+        },
+        {
+          "title": "O'Reilly's book"
+        }
+      ],
+      "cases": [
+        {
+          "expression": "length([?title == 'O\\'Reilly\\'s book'])",
+          "result": 2
         }
       ]
     }
