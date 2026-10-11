@@ -357,7 +357,7 @@
           }
           this._current++;
           var literal = stream.slice(start + 1, this._current - 1);
-          return literal.replace("\\'", "'");
+          return literal.replace(/\\'/g, "'");
       },
 
       _consumeNumber: function(stream) {
