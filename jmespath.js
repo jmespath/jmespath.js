@@ -355,6 +355,11 @@
               }
               this._current = current;
           }
+          if (this._current >= maxLength) {
+              var error = new Error("Unclosed raw string literal");
+              error.name = "LexerError";
+              throw error;
+          }
           this._current++;
           var literal = stream.slice(start + 1, this._current - 1);
           return literal.replace("\\'", "'");

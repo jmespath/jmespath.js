@@ -4,6 +4,58 @@ var tokenize = jmespath.tokenize;
 var compile = jmespath.compile;
 var strictDeepEqual = jmespath.strictDeepEqual;
 
+describe('raw string termination', function() {
+    var invalid = [
+        "'",
+        "'foo",
+        "'foo\\",
+        "'foo\\'",
+        "'foo\\\\",
+        "a == 'foo d",
+        "foo || 'unclosed",
+        "'ok' | 'unclosed"
+    ];
+    invalid.forEach(function(expression) {
+        it('rejects an unterminated raw string: ' + expression, function() {
+            var isLexerError = function(error) {
+                return error.name === 'LexerError' &&
+                    error.message === 'Unclosed raw string literal';
+            };
+            assert.throws(function() { tokenize(expression); }, isLexerError);
+            assert.throws(function() { compile(expression); }, isLexerError);
+            assert.throws(function() {
+                jmespath.search({a: 'foo d', foo: true}, expression);
+            }, isLexerError);
+        });
+    });
+
+    var valid = [
+        ["''", ""],
+        ["'foo d'", "foo d"],
+        ["'foo\\''", "foo'"],
+        ["'foo\\\\'", "foo\\\\"],
+        ["'line\\n'", "line\\n"],
+        ["'double\"quote'", 'double"quote']
+    ];
+    valid.forEach(function(testcase) {
+        it('preserves a terminated raw string: ' + testcase[0], function() {
+            assert.deepEqual(tokenize(testcase[0]), [
+                {type: 'Literal', value: testcase[1], start: 0}
+            ]);
+            assert.strictEqual(jmespath.search({}, testcase[0]), testcase[1]);
+        });
+    });
+
+    it('continues tokenizing after the closing quote', function() {
+        assert.deepEqual(tokenize("'foo' == 'foo'"), [
+            {type: 'Literal', value: 'foo', start: 0},
+            {type: 'EQ', value: '==', start: 6},
+            {type: 'Literal', value: 'foo', start: 9}
+        ]);
+        assert.strictEqual(jmespath.search({a: 'foo d'}, "a == 'foo d'"), true);
+    });
+});
+
 
 describe('tokenize', function() {
     it('should tokenize unquoted identifier', function() {
